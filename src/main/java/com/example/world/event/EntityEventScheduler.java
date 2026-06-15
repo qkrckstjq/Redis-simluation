@@ -1,0 +1,18 @@
+package com.example.world.event;
+
+import com.example.world.service.EntityService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+@RequiredArgsConstructor
+@Component
+public class EntityEventScheduler {
+    private final EntityService entityService;
+    public static boolean RUN = true;
+
+    @Scheduled(fixedRate = 50)
+    public void tick() {
+        if(RUN) entityService.processTickList();
+    }
+}
