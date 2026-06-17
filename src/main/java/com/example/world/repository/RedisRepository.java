@@ -130,8 +130,6 @@ public class RedisRepository {
         });
     }
 
-
-
     public Cursor<byte[]> scanWorldEntities(int count) {
 
         ScanOptions options = ScanOptions.scanOptions()

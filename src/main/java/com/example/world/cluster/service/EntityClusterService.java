@@ -122,6 +122,54 @@ public class EntityClusterService implements RedisService {
         };
     }
 
+    public Consumer<RedisConnection> saveSpawnEntities(
+            List<RedisEntity> spawnList,
+            Long nextEntityId) {
+
+        return connection -> {
+            long id = nextEntityId;
+            for (RedisEntity entity : spawnList) {
+
+                entity.setId(id);
+
+                String cellKey = cellManager.getGeoKey(
+                        entity.getX(),
+                        entity.getY()
+                );
+
+                String entityKey = "{%s}:entity:%d".formatted(cellKey, id);
+
+                entity.setCellKey(cellKey);
+
+                Map<byte[], byte[]> map =
+                        geoMapper.entityToByteMap(entity);
+
+                byte[] entityKeyBytes =
+                        ByteTypeConverter.stringToByte(entityKey);
+
+                connection.hashCommands().hMSet(
+                        entityKeyBytes,
+                        map
+                );
+
+                connection.setCommands().sAdd(
+                        RedisKeys.WORLD_BYTE,
+                        ByteTypeConverter.stringToByte(entityKey)
+                );
+
+                connection.geoCommands().geoAdd(
+                        ByteTypeConverter.stringToByte(cellKey),
+                        new Point(
+                                GeoUtil.scaleIn(entity.getX()),
+                                GeoUtil.scaleIn(entity.getY())
+                        ),
+                        entityKeyBytes
+                );
+                id++;
+            }
+        };
+    }
+
     public Consumer<RedisConnection> getEntityIds(List<String> ids) {
         return connection -> {
             for (String id : ids) {

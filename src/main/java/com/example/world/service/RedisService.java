@@ -16,6 +16,7 @@ public interface RedisService {
     public Consumer<RedisConnection> updateEntitiesPipe(List<RedisEntity> entities);
     public Consumer<RedisConnection> getNearByIds(List<RedisEntity> entities, int range);
     public Consumer<RedisConnection> getCollisionIds(List<NextMove> nextMoveList, double range);
+    public Consumer<RedisConnection> saveSpawnEntities(List<RedisEntity> spawnList, Long nextEntityId);
 
     public default Consumer<Cursor<byte[]>> batchConsumer(
             int batchSize,

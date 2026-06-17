@@ -35,6 +35,8 @@ public class RedisEntity {
         stamina = Math.min(stamina + 1, 100);
     }
 
+    public void increaseHp() { hp = Math.min(100, hp + 1);}
+
     public void attackedByWolf() {
         hp -= 20;
     }

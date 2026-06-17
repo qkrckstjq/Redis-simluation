@@ -1,5 +1,6 @@
 package com.example.world.service;
 
+import com.example.world.cluster.CellManager;
 import com.example.world.constants.RedisKeys;
 import com.example.world.entity.NextMove;
 import com.example.world.entity.RedisEntity;
@@ -25,6 +26,8 @@ import java.util.function.Consumer;
 @Qualifier("luaScriptService")
 public class LuaScriptService implements RedisService {
     private final String updateEntitySha;
+    private final CellManager cellManager;
+    private final GeoMapper geoMapper;
     private final GeoService geoService;
 
     public Consumer<RedisConnection> saveNewEntities(String type, Long nextId, int count) {
@@ -120,6 +123,54 @@ public class LuaScriptService implements RedisService {
 
         };
     }
+
+    public Consumer<RedisConnection> saveSpawnEntities(
+            List<RedisEntity> spawnList,
+            Long nextEntityId) {
+
+        return connection -> {
+            long id = nextEntityId;
+            for (RedisEntity entity : spawnList) {
+                entity.setId(id);
+
+                String cellKey = cellManager.getGeoKey(
+                        entity.getX(),
+                        entity.getY()
+                );
+
+                String entityKey = "{%s}:entity:%d".formatted(cellKey, id);
+
+                entity.setCellKey(cellKey);
+
+                Map<byte[], byte[]> map =
+                        geoMapper.entityToByteMap(entity);
+
+                byte[] entityKeyBytes =
+                        ByteTypeConverter.stringToByte(entityKey);
+
+                connection.hashCommands().hMSet(
+                        entityKeyBytes,
+                        map
+                );
+
+                connection.setCommands().sAdd(
+                        RedisKeys.WORLD_BYTE,
+                        ByteTypeConverter.IntegerToByte((int) id)
+                );
+
+                connection.geoCommands().geoAdd(
+                        ByteTypeConverter.stringToByte(cellKey),
+                        new Point(
+                                GeoUtil.scaleIn(entity.getX()),
+                                GeoUtil.scaleIn(entity.getY())
+                        ),
+                        entityKeyBytes
+                );
+                id++;
+            }
+        };
+    }
+
 
     public Consumer<RedisConnection> getEntityIds(List<String> ids) {
         return connection -> {

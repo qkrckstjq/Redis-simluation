@@ -30,6 +30,10 @@ public class BehaviorService {
                 entity.increaseStamina();
             }
 
+            if (!EntityService.isDead(entity)) {
+                entity.increaseHp();
+            }
+
             if (collision.isEmpty()) {
                 entity.setX(nextX);
                 entity.setY(nextY);
@@ -40,7 +44,8 @@ public class BehaviorService {
     public BehaviorResult moveNext(
             RedisEntity entity,
             Map<Long, RedisEntity> entityMap,
-            Map<Long, List<RedisEntity>> nearEntities) {
+            Map<Long, List<RedisEntity>> nearEntities,
+            List<RedisEntity> spawnList) {
         switch (entity.getState()) {
             case MOVE:
                 return moveRand(entity);
@@ -63,6 +68,9 @@ public class BehaviorService {
             case FLOCK:
                 return moveFlock(entity, nearEntities);
 
+            case SPAWN:
+                return spawn(entity, entityMap, spawnList);
+
             default:
                 throw new IllegalStateException("Unknown state : " + entity.getState());
         }
@@ -71,13 +79,14 @@ public class BehaviorService {
     public List<NextMove> decideMoves(
             List<RedisEntity> entities,
             Map<Long, RedisEntity> entityMap,
-            Map<Long, List<RedisEntity>> nearEntities) {
+            Map<Long, List<RedisEntity>> nearEntities,
+            List<RedisEntity> spawnList) {
 
         List<NextMove> nextMoves = new ArrayList<>();
         Map<Position, Long> map = new HashMap<>();
 
         for (RedisEntity entity : entities) {
-            BehaviorResult behavior = moveNext(entity, entityMap, nearEntities);
+            BehaviorResult behavior = moveNext(entity, entityMap, nearEntities, spawnList);
             resolveMove(entity, behavior, map, nextMoves);
         }
         return nextMoves;
@@ -332,6 +341,58 @@ public class BehaviorService {
                 StateEnum.FLOCK,
                 new Position(nextX, nextY),
                 entity.getTargetId()
+        );
+    }
+
+    private BehaviorResult spawn(
+            RedisEntity entity,
+            Map<Long, RedisEntity> entityMap,
+            List<RedisEntity> spawnList
+    ) {
+        RedisEntity partner = entityMap.get(entity.getTargetId());
+        if (entity.getId() > partner.getId()) {
+            return moveRand(entity);
+        }
+
+        if (!RandUtil.percent(50)) {
+            return moveRand(entity);
+        }
+
+        if (partner == null) {
+            return moveRand(entity);
+        }
+
+        int childX = GeoUtil.setCoordinate(
+                entity.getX() + RandUtil.getIntRand(-1, 1)
+        );
+
+        int childY = GeoUtil.setCoordinate(
+                entity.getY() + RandUtil.getIntRand(-1, 1)
+        );
+
+        RedisEntity child = new RedisEntity(
+                null,
+                entity.getType(),
+                StateEnum.MOVE,
+                100,
+                100,
+                childX,
+                childY,
+                null
+        );
+
+        spawnList.add(child);
+
+        entity.setHp(entity.getHp() - 20);
+        entity.setStamina(entity.getStamina() - 40);
+
+        partner.setHp(partner.getHp() - 20);
+        partner.setStamina(partner.getStamina() - 40);
+
+        return new BehaviorResult(
+                StateEnum.SPAWN,
+                new Position(entity.getX(), entity.getY()),
+                null
         );
     }
 }

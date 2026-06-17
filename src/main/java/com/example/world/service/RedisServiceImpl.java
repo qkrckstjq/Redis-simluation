@@ -12,10 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.geo.Point;
 import org.springframework.data.redis.connection.RedisConnection;
-import org.springframework.data.redis.core.Cursor;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -186,31 +184,39 @@ public class RedisServiceImpl implements RedisService {
         };
     }
 
-    public Consumer<Cursor<byte[]>> batchConsumer(
-            int batchSize,
-            Consumer<List<String>> consumer
-    ) {
-        return cursor -> {
+    public Consumer<RedisConnection> saveSpawnEntities(
+            List<RedisEntity> spawnList,
+            Long nextEntityId) {
 
-            List<String> batchIds = new ArrayList<>(batchSize);
+        return connection -> {
+            long id = nextEntityId;
+            for (RedisEntity entity : spawnList) {
+                entity.setId(id);
+                String entityKey = "entity:" + id;
 
-            while (cursor.hasNext()) {
+                Map<byte[], byte[]> map = geoMapper.entityToByteMap(entity);
 
-                batchIds.add(
-                        new String(
-                                cursor.next(),
-                                StandardCharsets.UTF_8
-                        )
+                byte[] entityKeyBytes = ByteTypeConverter.stringToByte(entityKey);
+
+                connection.hashCommands().hMSet(
+                        entityKeyBytes,
+                        map
                 );
 
-                if (batchIds.size() >= batchSize) {
-                    consumer.accept(batchIds);
-                    batchIds = new ArrayList<>(batchSize);
-                }
-            }
+                connection.setCommands().sAdd(
+                        RedisKeys.WORLD_BYTE,
+                        ByteTypeConverter.IntegerToByte((int) id)
+                );
 
-            if (!batchIds.isEmpty()) {
-                consumer.accept(batchIds);
+                connection.geoCommands().geoAdd(
+                        RedisKeys.GEO_BYTE,
+                        new Point(
+                                GeoUtil.scaleIn(entity.getX()),
+                                GeoUtil.scaleIn(entity.getY())
+                        ),
+                        entityKeyBytes
+                );
+                id++;
             }
         };
     }

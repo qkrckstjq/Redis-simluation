@@ -84,13 +84,17 @@ public class AiDecisionService {
 
         int sheepCount = 0;
         for (RedisEntity target : entities) {
-            if(target.getType().equals(TypeEnum.SHEEP)) {
-                sheepCount++;
-            }
             if (target.getType().equals(TypeEnum.WOLF)) {
                 entity.setState(StateEnum.RUN);
                 entity.setTargetId(target.getId());
                 return;
+            }
+            if(target.getType().equals(TypeEnum.SHEEP)) {
+                double dist = getDistBetEntities(entity, target);
+                if(dist <= 1.0 && trySpawn(entity, target)) {
+                    return;
+                }
+                sheepCount++;
             }
         }
 
@@ -178,16 +182,22 @@ public class AiDecisionService {
             RedisEntity entity2
     ) {
         int curHp = entity1.getHp();
-        int targetHp = entity2.getHp();
         int curStamina = entity1.getStamina();
+        int targetHp = entity2.getHp();
         int targetStamina = entity2.getStamina();
-        double dist = GeoUtil.getDist(entity1.getX(), entity1.getY(), entity2.getX(), entity2.getY());
 
         if(curHp < 80 || targetHp < 80) return false;
-        if(curStamina < 80 || targetStamina < 80) return false;
-        if(dist > 1) return false;
-        entity1.setState();
+        if(curStamina < 50 || targetStamina < 50) return false;
+
+        entity1.setState(StateEnum.SPAWN);
+        entity1.setTargetId(entity2.getId());
+        return true;
     }
 
-
+    private double getDistBetEntities(
+            RedisEntity entity1,
+            RedisEntity entity2
+    ) {
+        return GeoUtil.getDist(entity1.getX(), entity1.getY(), entity2.getX(), entity2.getY());
+    }
 }
