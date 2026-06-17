@@ -12,9 +12,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.geo.Point;
 import org.springframework.data.redis.connection.RedisConnection;
-import org.springframework.data.redis.connection.ReturnType;
+import org.springframework.data.redis.core.Cursor;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,10 +24,50 @@ import java.util.function.Consumer;
 
 @Service
 @RequiredArgsConstructor
-@Qualifier("luaScriptService")
-public class LuaScriptService implements RedisService {
-    private final String updateEntitySha;
+@Qualifier("redisServiceImpl")
+public class RedisServiceImpl implements RedisService {
     private final GeoService geoService;
+    private final GeoMapper geoMapper;
+
+    public List<RedisEntity> getEntities(List<Object> objectList) {
+        List<RedisEntity> entities = new ArrayList<>();
+
+        for (Object result : objectList) {
+
+            @SuppressWarnings("unchecked")
+            Map<String, String> map =
+                    (Map<String, String>) result;
+
+            if (map == null || map.isEmpty()) {
+                continue;
+            }
+
+            entities.add(
+                    new RedisEntity(
+                            Long.parseLong(map.get("id")),
+                            TypeEnum.valueOf(map.get("type")),
+                            StateEnum.valueOf(map.get("state")),
+                            Integer.parseInt(map.get("stamina")),
+                            Integer.parseInt(map.get("hp")),
+                            Integer.parseInt(map.get("x")),
+                            Integer.parseInt(map.get("y")),
+                            map.get("cell")
+                    )
+            );
+        }
+        return entities;
+    }
+
+    public Map<Long, RedisEntity> getHashMapEntities(List<RedisEntity> entityList) {
+        Map<Long, RedisEntity> result = new HashMap<>();
+
+        entityList.forEach(entity -> {
+            Long id = entity.getId();
+            result.put(id, entity);
+        });
+
+        return result;
+    }
 
     public Consumer<RedisConnection> saveNewEntities(String type, Long nextId, int count) {
         int start = nextId.intValue();
@@ -93,31 +135,37 @@ public class LuaScriptService implements RedisService {
     }
 
     public Consumer<RedisConnection> updateEntitiesPipe(List<RedisEntity> entities) {
-
         return connection -> {
 
             for (RedisEntity entity : entities) {
+                String key = "entity:" + entity.getId();
+                byte[] entityKey = ByteTypeConverter.stringToByte(key);
 
-                connection.scriptingCommands().evalSha(
-                        updateEntitySha,
-                        ReturnType.INTEGER,
-                        3,
+                if(EntityService.isDead(entity)) {
+                    connection.keyCommands().del(entityKey);
 
-                        ByteTypeConverter.stringToByte("entity:" + entity.getId()),
-                        RedisKeys.GEO_BYTE,
-                        RedisKeys.WORLD_BYTE,
+                    connection.geoCommands().geoRemove(
+                            RedisKeys.GEO_BYTE,
+                            entityKey
+                    );
 
-                        ByteTypeConverter.IntegerToByte(entity.getHp()),
-                        ByteTypeConverter.stringToByte(String.valueOf(entity.getX())),
-                        ByteTypeConverter.stringToByte(String.valueOf(entity.getY())),
-                        ByteTypeConverter.stringToByte(entity.getState().getState()),
-                        ByteTypeConverter.IntegerToByte(entity.getStamina()),
-                        ByteTypeConverter.stringToByte(String.valueOf(GeoUtil.scaleIn(entity.getX()))),
-                        ByteTypeConverter.stringToByte(String.valueOf(GeoUtil.scaleIn(entity.getY()))),
-                        ByteTypeConverter.stringToByte(String.valueOf(entity.getId()))
-                );
+                    connection.setCommands().sRem(
+                            RedisKeys.WORLD_BYTE,
+                            ByteTypeConverter.stringToByte(String.valueOf(entity.getId()))
+                    );
+
+                    continue;
+                }
+
+
+
+                Point point = new Point(GeoUtil.scaleIn(entity.getX()), GeoUtil.scaleIn(entity.getY()));
+
+                Map<byte[], byte[]> map = geoMapper.entityToByteMap(entity);
+
+                connection.geoCommands().geoAdd(RedisKeys.GEO_BYTE, point, entityKey);
+                connection.hashCommands().hMSet(entityKey, map);
             }
-
         };
     }
 
@@ -128,6 +176,45 @@ public class LuaScriptService implements RedisService {
             }
         };
     }
+
+    public Consumer<RedisConnection> getGeoEntityIds(List<String> ids) {
+        return connection -> {
+            for (String id : ids) {
+                byte[] key = ByteTypeConverter.stringToByte(("entity:" + id));
+                connection.geoCommands().geoPos(RedisKeys.GEO_BYTE, key);
+            }
+        };
+    }
+
+    public Consumer<Cursor<byte[]>> batchConsumer(
+            int batchSize,
+            Consumer<List<String>> consumer
+    ) {
+        return cursor -> {
+
+            List<String> batchIds = new ArrayList<>(batchSize);
+
+            while (cursor.hasNext()) {
+
+                batchIds.add(
+                        new String(
+                                cursor.next(),
+                                StandardCharsets.UTF_8
+                        )
+                );
+
+                if (batchIds.size() >= batchSize) {
+                    consumer.accept(batchIds);
+                    batchIds = new ArrayList<>(batchSize);
+                }
+            }
+
+            if (!batchIds.isEmpty()) {
+                consumer.accept(batchIds);
+            }
+        };
+    }
+
 
     public Consumer<RedisConnection> getNearByIds(List<RedisEntity> entities, int range) {
         return geoService.getNearByIds(entities, range);

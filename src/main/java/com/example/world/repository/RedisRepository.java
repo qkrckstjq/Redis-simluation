@@ -3,6 +3,7 @@ package com.example.world.repository;
 import com.example.world.constants.RedisKeys;
 import com.example.world.entity.RedisEntity;
 import com.example.world.entity.RedisGeo;
+import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.geo.GeoResults;
@@ -26,6 +27,7 @@ import java.util.function.Supplier;
 @RequiredArgsConstructor
 public class RedisRepository {
     private final StringRedisTemplate redisTemplate;
+
     private static final int MAX_HISTORY = -100;
 
     public Long nextEntityId() {
@@ -114,25 +116,21 @@ public class RedisRepository {
     }
 
     public List<Object> responsePipeLine(Consumer<RedisConnection> consumer) {
-        long getStart = System.nanoTime();
         List<Object> results = redisTemplate.executePipelined(((RedisCallback<Object>) connection -> {
             consumer.accept(connection);
             return null;
         }));
-        long getTime = System.nanoTime() - getStart;
-        System.out.printf("read=%dms\n", getTime / 1_000_000);
         return results;
     }
 
     public void requestPipeLine(Consumer<RedisConnection> consumer) {
-        long writeStart = System.nanoTime();
         redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
             consumer.accept(connection);
             return null;
         });
-        long writeTime = System.nanoTime() - writeStart;
-        System.out.printf("write=%dms\n", writeTime / 1_000_000);
     }
+
+
 
     public Cursor<byte[]> scanWorldEntities(int count) {
 

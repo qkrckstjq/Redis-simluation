@@ -9,7 +9,9 @@ public enum StateEnum {
     CHASE("CHASE"),
     ATTACK("ATTACK"),
     RUN("RUN"),
-    REST("REST");
+    REST("REST"),
+    FLOCK("FLOCK"),
+    SPAWN("SPAWN");
 
     private final String state;
 

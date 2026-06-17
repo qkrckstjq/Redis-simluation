@@ -11,4 +11,8 @@ public class RandUtil {
     public static int getIntRand(int min, int max) {
         return random.nextInt(min, max);
     }
+
+    public static boolean percent(int percent) {
+        return random.nextInt(0, 99) < percent;
+    }
 }

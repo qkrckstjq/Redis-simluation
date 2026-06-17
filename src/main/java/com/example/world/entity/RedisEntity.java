@@ -14,8 +14,9 @@ public class RedisEntity {
     int x;
     int y;
     Long targetId;
+    private String cellKey;
 
-    public RedisEntity(Long id, TypeEnum type, StateEnum state, int stamina, int hp, int x, int y) {
+    public RedisEntity(Long id, TypeEnum type, StateEnum state, int stamina, int hp, int x, int y, String cellKey) {
         this.id = id;
         this.type = type;
         this.state = state;
@@ -23,6 +24,7 @@ public class RedisEntity {
         this.hp = hp;
         this.x = x;
         this.y = y;
+        this.cellKey = cellKey;
     }
 
     public void decreaseStamina() {
@@ -35,5 +37,9 @@ public class RedisEntity {
 
     public void attackedByWolf() {
         hp -= 20;
+    }
+
+    public boolean checkCellKey(String cellKey) {
+        return this.cellKey.equals(cellKey);
     }
 }

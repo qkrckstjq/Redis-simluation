@@ -30,6 +30,9 @@ public class SimulationWebSocketHandler extends TextWebSocketHandler {
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         sessions.remove(session);
         System.out.println("Disconnected : " + session.getId());
+        System.out.println("Status       : " + status);
+        System.out.println("Code         : " + status.getCode());
+        System.out.println("Reason       : " + status.getReason());
     }
 
     public void broadcast(Object payload) {
@@ -53,6 +56,7 @@ public class SimulationWebSocketHandler extends TextWebSocketHandler {
                 session.sendMessage(message);
                 return false;
             } catch (IOException e) {
+                e.printStackTrace();
                 return true;
             }
         });
@@ -60,6 +64,8 @@ public class SimulationWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
+        exception.printStackTrace();
+
         sessions.remove(session);
         session.close();
     }

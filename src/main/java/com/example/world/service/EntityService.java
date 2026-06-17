@@ -1,11 +1,12 @@
 package com.example.world.service;
 
+import com.example.world.cluster.service.EntityClusterMapper;
+import com.example.world.cluster.service.EntityClusterService;
 import com.example.world.entity.*;
 import com.example.world.repository.RedisRepository;
 import com.example.world.websocket.WebSocketMapper;
 import com.example.world.websocket.WebSocketService;
 import com.example.world.stream.StreamService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.geo.GeoResults;
 import org.springframework.data.geo.Point;
 import org.springframework.data.redis.connection.RedisGeoCommands.GeoLocation;
@@ -16,22 +17,41 @@ import java.util.Map;
 import java.util.Random;
 
 @Service
-@RequiredArgsConstructor
 public class EntityService {
     private final RedisRepository redisRepository;
-    private final RedisService redisService;
-    private final LuaScriptService luaScriptService;
     private final WebSocketService webSocketService;
     private final AiDecisionService aiDecisionService;
     private final StreamService streamService;
     private final EventMapper eventMapper;
     private final WebSocketMapper webSocketMapper;
     private final EntityMapper entityMapper;
-    private final GeoService geoService;
     private final BehaviorService behaviorService;
+    private final RedisService redisService;
     private final Random random = new Random();
-    private final int BATCH_SIZE = 2000;
+    private final int BATCH_SIZE = 100000;
     private final double SCALE = 1000;
+
+    public EntityService(
+        RedisRepository redisRepository,
+        WebSocketService webSocketService,
+        AiDecisionService aiDecisionService,
+        StreamService streamService,
+        EventMapper eventMapper,
+        WebSocketMapper webSocketMapper,
+        EntityMapper entityMapper,
+        BehaviorService behaviorService,
+        RedisService entityClusterService
+    ) {
+        this.redisRepository = redisRepository;
+        this.webSocketService = webSocketService;
+        this.aiDecisionService = aiDecisionService;
+        this.streamService = streamService;
+        this.eventMapper = eventMapper;
+        this.webSocketMapper = webSocketMapper;
+        this.entityMapper = entityMapper;
+        this.behaviorService = behaviorService;
+        this.redisService = entityClusterService;
+    }
 
     public void createEntity(String type, String name, int hp, int x, int y) {
 //        RedisEntity entity = new RedisEntity(type, name, hp, x, y);
@@ -50,51 +70,132 @@ public class EntityService {
                 redisService.batchConsumer(BATCH_SIZE, this::processBatch));
     }
 
-    private void processBatch(List<String> ids) {
-        //get all entities by pipeLine(Redis)
-        List<Object> hGetAllEntities = redisRepository.responsePipeLine(redisService.getEntityIds(ids));
-        List<RedisEntity> entityList = entityMapper.objectsToRedisEntities(hGetAllEntities);
-        Map<Long, RedisEntity> entityMap = entityMapper.entitiesToHashMap(entityList);
-        //------------------------------//
-
-        //get all nearby entities
-        List<Object> geoResults = redisRepository.responsePipeLine(geoService.getNearByIds(entityList, 10));
-        Map<Long, List<RedisEntity>> nearEntities = entityMapper.geoSearchNearbyResultToIds(entityList, geoResults, entityMap);
-        //------------------------------//
-
-        //move with AI
-        aiDecisionService.decideState(entityList, nearEntities);
-        //
-
-        //check nextMoves can move\
-        List<NextMove> nextMoves = behaviorService.decideMoves(entityList, entityMap);
-        //
-
-        //get all collisionIds each entities
-        List<Object> geoPosResults = redisRepository.responsePipeLine(geoService.getCollisionIds(nextMoves, 0.2));
-        Map<Long, List<Long>> collisionResults = entityMapper.geoSearchCollisionsToIds(geoPosResults, nextMoves);
-        behaviorService.moveWithCollision(nextMoves, collisionResults);
-        //------------------------------//
-
-
-        //put updateEntities by pipeLine(Redis)
-        redisRepository.requestPipeLine(luaScriptService.updateEntitiesPipe(entityList));
-        //------------------------------//
-
-        //publish entities event to redis stream
-        redisRepository.requestPipeLine(streamService.publish(eventMapper.entitiesToEvents(entityList)));
-        //
-
-
-//        //get all nearby entities
-//        List<Object> geoResults = redisRepository.responsePipeLine(geoService.getNearByIds(entities, 10));
-        List<EntitySnapshotDto> snapshotDtoList = webSocketMapper.geoSearchResultsToEntitiesSnapShotDtos(entityList, geoResults);
+//    private void processBatch(List<String> ids) {
+//        //get all entities by pipeLine(Redis)
+//        List<Object> hGetAllEntities = redisRepository.responsePipeLine(redisService.getEntityIds(ids));
+//        List<RedisEntity> entityList = entityMapper.objectsToRedisEntities(hGetAllEntities);
+//        Map<Long, RedisEntity> entityMap = entityMapper.entitiesToHashMap(entityList);
 //        //------------------------------//
+//
+//        //get all nearby entities
+//        List<Object> geoResults = redisRepository.responsePipeLine(redisService.getNearByIds(entityList, 10));
+//        Map<Long, List<RedisEntity>> nearEntities = entityMapper.geoSearchNearbyResultToIds(entityList, geoResults, entityMap);
+//        //------------------------------//
+//
+//        //move with AI
+//        aiDecisionService.decideState(entityList, nearEntities);
+//        //
+//
+//        //check nextMoves can move\
+//        List<NextMove> nextMoves = behaviorService.decideMoves(entityList, entityMap);
+//        //
+//
+//        //get all collisionIds each entities
+//        List<Object> geoPosResults = redisRepository.responsePipeLine(redisService.getCollisionIds(nextMoves, 0.2));
+//        Map<Long, List<Long>> collisionResults = entityMapper.geoSearchCollisionsToIds(geoPosResults, nextMoves);
+//
+//        //        //get all nearby entities
+////        List<Object> geoResults = redisRepository.responsePipeLine(geoService.getNearByIds(entities, 10));
+//        List<EntitySnapshotDto> snapshotDtoList = webSocketMapper.geoSearchResultsToClusterEntitiesSnapShotDtos(entityList, geoResults);
+////        //------------------------------//
+//
+//
+//        behaviorService.moveWithCollision(nextMoves, collisionResults); //entity의 x, y좌표 업데이트
+//        //------------------------------//
+//
+//        //put updateEntities by pipeLine(Redis)
+//        redisRepository.requestPipeLine(redisService.updateEntitiesPipe(entityList));
+//        //------------------------------//
+//
+//        //publish entities event to redis stream
+//        redisRepository.requestPipeLine(streamService.publish(eventMapper.entitiesToEvents(entityList)));
+//        //
+//
+//        Tick tick = webSocketMapper.redisEntitiesToTick(snapshotDtoList);
+//        webSocketService.sendSnapShots(tick);
+//    }
 
+    private void processBatch(List<String> ids) {
 
+        long totalStart = System.nanoTime();
+        long checkpoint = totalStart;
+
+        List<Object> hGetAllEntities =
+                redisRepository.responsePipeLine(redisService.getEntityIds(ids));
+        List<RedisEntity> entityList =
+                entityMapper.objectsToRedisEntities(hGetAllEntities);
+        Map<Long, RedisEntity> entityMap =
+                entityMapper.entitiesToHashMap(entityList);
+
+        System.out.printf("[1] Entity Read         : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
+        checkpoint = System.nanoTime();
+
+        List<Object> geoResults =
+                redisRepository.responsePipeLine(redisService.getNearByIds(entityList, 10));
+        Map<Long, List<RedisEntity>> nearEntities =
+                entityMapper.geoSearchNearbyResultToIds(entityList, geoResults, entityMap);
+
+        System.out.printf("[2] Nearby Search       : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
+        checkpoint = System.nanoTime();
+
+        aiDecisionService.decideState(entityList, nearEntities, entityMap);
+
+        System.out.printf("[3] AI Decision         : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
+        checkpoint = System.nanoTime();
+
+        List<NextMove> nextMoves =
+                behaviorService.decideMoves(entityList, entityMap, nearEntities);
+
+        System.out.printf("[4] Move Decision       : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
+        checkpoint = System.nanoTime();
+
+        List<Object> geoPosResults =
+                redisRepository.responsePipeLine(redisService.getCollisionIds(nextMoves, 0.2));
+        Map<Long, List<Long>> collisionResults =
+                entityMapper.geoSearchCollisionsToIds(geoPosResults, nextMoves);
+
+        System.out.printf("[5] Collision Search    : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
+        checkpoint = System.nanoTime();
+
+        List<EntitySnapshotDto> snapshotDtoList =
+                webSocketMapper.geoSearchResultsToClusterEntitiesSnapShotDtos(entityList, geoResults);
+
+        System.out.printf("[6] Snapshot Build      : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
+        checkpoint = System.nanoTime();
+
+        behaviorService.moveWithCollision(nextMoves, collisionResults);
+
+        System.out.printf("[7] Apply Move          : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
+        checkpoint = System.nanoTime();
+
+        redisRepository.requestPipeLine(redisService.updateEntitiesPipe(entityList));
+
+        System.out.printf("[8] Redis Update        : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
+        checkpoint = System.nanoTime();
+
+        redisRepository.requestPipeLine(
+                streamService.publish(eventMapper.entitiesToEvents(entityList)));
+
+        System.out.printf("[9] Stream Publish      : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
+        checkpoint = System.nanoTime();
 
         Tick tick = webSocketMapper.redisEntitiesToTick(snapshotDtoList);
         webSocketService.sendSnapShots(tick);
+
+        System.out.printf("[10] WebSocket Send     : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
+
+        System.out.printf("TOTAL                 : %d ms%n%n",
+                (System.nanoTime() - totalStart) / 1_000_000);
     }
 
     public List<RedisGeo> getNearEntities(Long base, double range) {

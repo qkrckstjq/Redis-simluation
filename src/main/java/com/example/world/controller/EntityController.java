@@ -71,4 +71,9 @@ public class EntityController {
         List<EntityHistoryDto> entityHistoryList = historyService.getEntityHistory(entityId);
         return new ResponseEntity<>(entityHistoryList, HttpStatus.OK);
     }
+
+    @PostMapping("/process")
+    public void processBatch() {
+        entityService.processTickList();
+    }
 }

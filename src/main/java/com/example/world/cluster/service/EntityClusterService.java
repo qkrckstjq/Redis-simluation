@@ -1,0 +1,140 @@
+package com.example.world.cluster.service;
+
+import com.example.world.cluster.CellManager;
+import com.example.world.constants.RedisKeys;
+import com.example.world.entity.NextMove;
+import com.example.world.entity.RedisEntity;
+import com.example.world.entity.StateEnum;
+import com.example.world.service.EntityService;
+import com.example.world.service.GeoMapper;
+import com.example.world.service.RedisService;
+import com.example.world.util.ByteTypeConverter;
+import com.example.world.util.GeoUtil;
+import com.example.world.util.RandUtil;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.geo.Point;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+
+@Service
+@RequiredArgsConstructor
+@Qualifier("entityClusterService")
+public class EntityClusterService implements RedisService {
+    private final CellManager cellManager;
+    private final GeoMapper geoMapper;
+    private final GeoClusterService geoClusterService;
+
+    public Consumer<RedisConnection> saveNewEntities(String type, Long nextId, int count) {
+        int start = nextId.intValue();
+        return connection -> {
+            for (int i = start; i < count + start; i++) {
+//                String entityKey = "entity:" + i;
+//                byte[] entityByteKey = ByteTypeConverter.stringToByte(entityKey);
+                int randX = RandUtil.getIntRand(GeoUtil.MIN_COORDINATE, GeoUtil.MAX_COORDINATE);
+                int randY = RandUtil.getIntRand(GeoUtil.MIN_COORDINATE, GeoUtil.MAX_COORDINATE);
+                String cellKey = cellManager.getGeoKey(randX, randY);
+                byte[] geoEntityKey = ByteTypeConverter.stringToByte("{%s}:entity:%d".formatted(cellKey, i));
+                byte[] cellByteKey = ByteTypeConverter.stringToByte(cellKey);
+                Point point = new Point(GeoUtil.scaleIn(randX), GeoUtil.scaleIn(randY));
+
+                Map<byte[], byte[]> entityMap = geoMapper.newEntityToByteMap(
+                        i,
+                        100,
+                        type,
+                        StateEnum.MOVE.getState(),
+                        100,
+                        randX,
+                        randY,
+                        cellKey
+                );
+
+                connection.stringCommands().incrBy(RedisKeys.ENTITY_BYTE, 1);
+
+                connection.setCommands().sAdd(
+                        RedisKeys.WORLD_BYTE,
+                        geoEntityKey
+                );
+
+                connection.hashCommands().hMSet(
+                        geoEntityKey,
+                        entityMap
+                );
+
+                connection.geoCommands().geoAdd(cellByteKey, point, geoEntityKey);
+            }
+        };
+    }
+
+    public Consumer<RedisConnection> updateEntitiesPipe(List<RedisEntity> entities) {
+        return connection -> {
+
+            for (RedisEntity entity : entities) {
+                String prevCellKey = entity.getCellKey();
+                String nextCellKey = cellManager.getGeoKey(entity.getX(), entity.getY());
+                String entityKey = "{%s}:entity:%d".formatted(prevCellKey, entity.getId());
+                byte[] entityByteKey = ByteTypeConverter.stringToByte(entityKey);
+                byte[] prevCellByteKey = ByteTypeConverter.stringToByte(prevCellKey);
+                byte[] nextCellByteKey = ByteTypeConverter.stringToByte(nextCellKey);
+
+                if(EntityService.isDead(entity)) {
+                    connection.keyCommands().del(entityByteKey);
+                    connection.geoCommands().geoRemove(
+                            prevCellByteKey,
+                            entityByteKey
+                    );
+                    connection.setCommands().sRem(
+                            RedisKeys.WORLD_BYTE,
+                            entityByteKey
+                    );
+                    continue;
+                }
+
+                if(!entity.checkCellKey(nextCellKey)) {
+                    connection.keyCommands().del(entityByteKey);
+                    connection.geoCommands().geoRemove(
+                            prevCellByteKey,
+                            entityByteKey
+                    );
+                    connection.setCommands().sRem(
+                            RedisKeys.WORLD_BYTE,
+                            entityByteKey
+                    );
+                    entity.setCellKey(nextCellKey);
+                }
+
+                byte[] nextEntityByteKey = ByteTypeConverter.stringToByte("{%s}:entity:%d".formatted(nextCellKey, entity.getId()));
+                Point point = new Point(GeoUtil.scaleIn(entity.getX()), GeoUtil.scaleIn(entity.getY()));
+
+                Map<byte[], byte[]> map = geoMapper.entityToByteMap(entity);
+
+                connection.geoCommands().geoAdd(nextCellByteKey, point, nextEntityByteKey);
+                connection.hashCommands().hMSet(nextEntityByteKey, map);
+                connection.setCommands().sAdd(
+                        RedisKeys.WORLD_BYTE,
+                        nextEntityByteKey
+                );
+            }
+        };
+    }
+
+    public Consumer<RedisConnection> getEntityIds(List<String> ids) {
+        return connection -> {
+            for (String id : ids) {
+                connection.hashCommands().hGetAll(ByteTypeConverter.stringToByte(id));
+            }
+        };
+    }
+
+    public Consumer<RedisConnection> getNearByIds(List<RedisEntity> entities, int range) {
+        return geoClusterService.getNearByIds(entities, range);
+    }
+
+    public Consumer<RedisConnection> getCollisionIds(List<NextMove> nextMoveList, double range) {
+        return geoClusterService.getCollisionIds(nextMoveList, range);
+    }
+}

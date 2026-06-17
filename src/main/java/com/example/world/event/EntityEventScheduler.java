@@ -9,9 +9,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class EntityEventScheduler {
     private final EntityService entityService;
-    public static boolean RUN = true;
+    public static boolean RUN = false;
 
-    @Scheduled(fixedRate = 50)
+    @Scheduled(fixedRate = 100)
     public void tick() {
         if(RUN) entityService.processTickList();
     }
