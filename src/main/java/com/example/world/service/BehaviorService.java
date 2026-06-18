@@ -16,6 +16,8 @@ public class BehaviorService {
 
             RedisEntity entity = nextMove.getEntity();
 
+            entity.increaseAge();
+
             List<Long> collision =
                     collisionResults.get(entity.getId());
 
@@ -46,34 +48,17 @@ public class BehaviorService {
             Map<Long, RedisEntity> entityMap,
             Map<Long, List<RedisEntity>> nearEntities,
             List<RedisEntity> spawnList) {
-        switch (entity.getState()) {
-            case MOVE:
-                return moveRand(entity);
-
-            case IDLE:
-                return moveIDLE(entity);
-
-            case ATTACK:
-                return moveAttack(entity, entityMap);
-
-            case CHASE:
-                return moveChase(entity, entityMap);
-
-            case REST:
-                return moveRest(entity);
-
-            case RUN:
-                return moveRun(entity, entityMap);
-
-            case FLOCK:
-                return moveFlock(entity, nearEntities);
-
-            case SPAWN:
-                return spawn(entity, entityMap, spawnList);
-
-            default:
-                throw new IllegalStateException("Unknown state : " + entity.getState());
-        }
+        return switch (entity.getState()) {
+            case MOVE -> moveRand(entity);
+            case IDLE -> moveIDLE(entity);
+            case ATTACK -> moveAttack(entity, entityMap);
+            case CHASE -> moveChase(entity, entityMap);
+            case REST -> moveRest(entity);
+            case RUN -> moveRun(entity, entityMap);
+            case FLOCK -> moveFlock(entity, entityMap);
+            case SPAWN -> spawn(entity, entityMap, spawnList);
+            default -> throw new IllegalStateException("Unknown state : " + entity.getState());
+        };
     }
 
     public List<NextMove> decideMoves(
@@ -276,6 +261,9 @@ public class BehaviorService {
         }
 
         target.attackedByWolf();
+        if(EntityService.isDead(target)) {
+            EntityService.successHunt(entity);
+        }
 
         int curX = entity.getX();
         int curY = entity.getY();
@@ -298,44 +286,20 @@ public class BehaviorService {
 
     private BehaviorResult moveFlock(
             RedisEntity entity,
-            Map<Long, List<RedisEntity>> entityMap
+            Map<Long, RedisEntity> entityMap
     ) {
-        if(entity.getStamina() <= 0) return moveRest(entity);
+        if(entity.getStamina() <= 50) return moveRest(entity);
         if(RandUtil.percent(20)){
             return moveRand(entity);
         }
-
         int curX = entity.getX();
         int curY = entity.getY();
-        int targetX = entity.getX();
-        int targetY = entity.getY();
-        List<RedisEntity> sheepList = entityMap.get(entity.getId()).stream()
-                .filter(e -> e.getType().equals(TypeEnum.SHEEP))
-                .toList();
-        int sheepCount = sheepList.size() + 1;
-        for(RedisEntity e : sheepList) {
-            targetX += e.getX();
-            targetY += e.getY();
-        }
-        int avgX = targetX / sheepCount;
-        int avgY = targetY / sheepCount;
+        RedisEntity targetSheep = entityMap.get(entity.getTargetId());
+        int targetX = targetSheep.getX();
+        int targetY = targetSheep.getY();
 
-        double dist = GeoUtil.getDist(
-                curX,
-                curY,
-                avgX,
-                avgY
-        );
-
-        if(dist < 2.0){
-            return moveRand(entity);
-        }
-
-        int dx = Integer.compare(avgX, curX);
-        int dy = Integer.compare(avgY, curY);
-
-        int nextX = GeoUtil.setCoordinate(curX + dx);
-        int nextY = GeoUtil.setCoordinate(curY + dy);
+        int dx = Integer.compare(targetX, curX);
+        int dy = Integer.compare(targetY, curY);
 
         return new BehaviorResult(
                 StateEnum.FLOCK,
@@ -354,11 +318,7 @@ public class BehaviorService {
             return moveRand(entity);
         }
 
-        if (!RandUtil.percent(50)) {
-            return moveRand(entity);
-        }
-
-        if (partner == null) {
+        if (!RandUtil.percent(20)) {
             return moveRand(entity);
         }
 
@@ -372,6 +332,7 @@ public class BehaviorService {
 
         RedisEntity child = new RedisEntity(
                 null,
+                0,
                 entity.getType(),
                 StateEnum.MOVE,
                 100,

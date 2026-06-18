@@ -19,6 +19,11 @@ public class GeoMapper {
         );
 
         map.put(
+                ByteTypeConverter.stringToByte("age"),
+                ByteTypeConverter.IntegerToByte(entity.getAge())
+        );
+
+        map.put(
                 ByteTypeConverter.stringToByte("hp"),
                 ByteTypeConverter.IntegerToByte(entity.getHp())
         );
@@ -49,6 +54,16 @@ public class GeoMapper {
         );
 
         map.put(
+                ByteTypeConverter.stringToByte("breedReady"),
+                ByteTypeConverter.stringToByte(String.valueOf(entity.isBreedReady()))
+        );
+
+        map.put(
+                ByteTypeConverter.stringToByte("breedReadyTick"),
+                ByteTypeConverter.IntegerToByte(entity.getBreedReadyTick())
+        );
+
+        map.put(
                 ByteTypeConverter.stringToByte("cell"),
                 ByteTypeConverter.stringToByte(entity.getCellKey())
         );
@@ -69,6 +84,11 @@ public class GeoMapper {
         map.put(
                 ByteTypeConverter.stringToByte("id"),
                 ByteTypeConverter.IntegerToByte(id)
+        );
+
+        map.put(
+                ByteTypeConverter.stringToByte("age"),
+                ByteTypeConverter.IntegerToByte(0)
         );
 
         map.put(
@@ -99,6 +119,16 @@ public class GeoMapper {
         map.put(
                 ByteTypeConverter.stringToByte("y"),
                 ByteTypeConverter.IntegerToByte(y)
+        );
+
+        map.put(
+                ByteTypeConverter.stringToByte("breedReady"),
+                ByteTypeConverter.stringToByte(String.valueOf(false))
+        );
+
+        map.put(
+                ByteTypeConverter.stringToByte("breedReadyTick"),
+                ByteTypeConverter.IntegerToByte(0)
         );
 
         map.put(

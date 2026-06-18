@@ -179,7 +179,10 @@ public class EntityClusterService implements RedisService {
     }
 
     public Consumer<RedisConnection> getNearByIds(List<RedisEntity> entities, int range) {
-        return geoClusterService.getNearByIds(entities, range);
+        List<RedisEntity> noneTarget = entities.stream()
+                .filter(entity -> entity.getTargetId() == null)
+                .toList();
+        return geoClusterService.getNearByIds(noneTarget, range);
     }
 
     public Consumer<RedisConnection> getCollisionIds(List<NextMove> nextMoveList, double range) {

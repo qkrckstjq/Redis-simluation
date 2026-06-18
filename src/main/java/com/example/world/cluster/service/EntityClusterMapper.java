@@ -88,7 +88,7 @@ public class EntityClusterMapper implements EntityMapper {
 
             Long id = Long.parseLong(key.substring(17));
 
-            if(id != baseEntityId) {
+            if(!id.equals(baseEntityId)) {
                 nearbyIds.add(id);
             }
         }
@@ -113,7 +113,7 @@ public class EntityClusterMapper implements EntityMapper {
 
             Long id = Long.parseLong(key.substring(17));
 
-            if(id != baseEntityId) {
+            if(!id.equals(baseEntityId)) {
                 RedisEntity targetEntity = entityMap.get(id);
 
                 if (targetEntity != null) {
@@ -186,34 +186,34 @@ public class EntityClusterMapper implements EntityMapper {
         return new ArrayList<>(entityMap.get(id));
     }
 
-    public List<RedisEntity> objectsToRedisEntities(List<Object> objectList) {
-        List<RedisEntity> entities = new ArrayList<>();
-
-        for (Object result : objectList) {
-
-            @SuppressWarnings("unchecked")
-            Map<String, String> map =
-                    (Map<String, String>) result;
-
-            if (map == null || map.isEmpty()) {
-                continue;
-            }
-
-            entities.add(
-                    new RedisEntity(
-                            Long.parseLong(map.get("id")),
-                            TypeEnum.valueOf(map.get("type")),
-                            StateEnum.valueOf(map.get("state")),
-                            Integer.parseInt(map.get("stamina")),
-                            Integer.parseInt(map.get("hp")),
-                            Integer.parseInt(map.get("x")),
-                            Integer.parseInt(map.get("y")),
-                            map.get("cell")
-                    )
-            );
-        }
-        return entities;
-    }
+//    public List<RedisEntity> objectsToRedisEntities(List<Object> objectList) {
+//        List<RedisEntity> entities = new ArrayList<>();
+//
+//        for (Object result : objectList) {
+//
+//            @SuppressWarnings("unchecked")
+//            Map<String, String> map =
+//                    (Map<String, String>) result;
+//
+//            if (map == null || map.isEmpty()) {
+//                continue;
+//            }
+//
+//            entities.add(
+//                    new RedisEntity(
+//                            Long.parseLong(map.get("id")),
+//                            TypeEnum.valueOf(map.get("type")),
+//                            StateEnum.valueOf(map.get("state")),
+//                            Integer.parseInt(map.get("stamina")),
+//                            Integer.parseInt(map.get("hp")),
+//                            Integer.parseInt(map.get("x")),
+//                            Integer.parseInt(map.get("y")),
+//                            map.get("cell")
+//                    )
+//            );
+//        }
+//        return entities;
+//    }
 
     public Map<Long, RedisEntity> entitiesToHashMap(List<RedisEntity> entityList) {
         Map<Long, RedisEntity> result = new HashMap<>();

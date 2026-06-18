@@ -27,34 +27,34 @@ public class RedisServiceImpl implements RedisService {
     private final GeoService geoService;
     private final GeoMapper geoMapper;
 
-    public List<RedisEntity> getEntities(List<Object> objectList) {
-        List<RedisEntity> entities = new ArrayList<>();
-
-        for (Object result : objectList) {
-
-            @SuppressWarnings("unchecked")
-            Map<String, String> map =
-                    (Map<String, String>) result;
-
-            if (map == null || map.isEmpty()) {
-                continue;
-            }
-
-            entities.add(
-                    new RedisEntity(
-                            Long.parseLong(map.get("id")),
-                            TypeEnum.valueOf(map.get("type")),
-                            StateEnum.valueOf(map.get("state")),
-                            Integer.parseInt(map.get("stamina")),
-                            Integer.parseInt(map.get("hp")),
-                            Integer.parseInt(map.get("x")),
-                            Integer.parseInt(map.get("y")),
-                            map.get("cell")
-                    )
-            );
-        }
-        return entities;
-    }
+//    public List<RedisEntity> getEntities(List<Object> objectList) {
+//        List<RedisEntity> entities = new ArrayList<>();
+//
+//        for (Object result : objectList) {
+//
+//            @SuppressWarnings("unchecked")
+//            Map<String, String> map =
+//                    (Map<String, String>) result;
+//
+//            if (map == null || map.isEmpty()) {
+//                continue;
+//            }
+//
+//            entities.add(
+//                    new RedisEntity(
+//                            Long.parseLong(map.get("id")),
+//                            TypeEnum.valueOf(map.get("type")),
+//                            StateEnum.valueOf(map.get("state")),
+//                            Integer.parseInt(map.get("stamina")),
+//                            Integer.parseInt(map.get("hp")),
+//                            Integer.parseInt(map.get("x")),
+//                            Integer.parseInt(map.get("y")),
+//                            map.get("cell")
+//                    )
+//            );
+//        }
+//        return entities;
+//    }
 
     public Map<Long, RedisEntity> getHashMapEntities(List<RedisEntity> entityList) {
         Map<Long, RedisEntity> result = new HashMap<>();

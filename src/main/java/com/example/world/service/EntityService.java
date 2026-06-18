@@ -1,9 +1,8 @@
 package com.example.world.service;
 
-import com.example.world.cluster.service.EntityClusterMapper;
-import com.example.world.cluster.service.EntityClusterService;
 import com.example.world.entity.*;
 import com.example.world.repository.RedisRepository;
+import com.example.world.service.ai.AiDecisionService;
 import com.example.world.websocket.WebSocketMapper;
 import com.example.world.websocket.WebSocketService;
 import com.example.world.stream.StreamService;
@@ -218,7 +217,31 @@ public class EntityService {
     }
 
     public static boolean isDead(RedisEntity entity) {
-        return entity.getHp() < 0;
+        return entity.getHp() < 0 || entity.getAge() >= 1000;
+    }
+
+    public static boolean isBreedReady(RedisEntity entity) {
+        if(entity.getAge() < 400) return false;
+
+        if(entity.getType().equals(TypeEnum.SHEEP)) {
+            if(entity.getHp() >= 80 && entity.getStamina() >= 50) {
+                entity.setBreedReady(true);
+                return true;
+            }
+            entity.setBreedReady(false);
+            return false;
+        }
+        if(entity.getBreedReadyTick() > 0) {
+            entity.setBreedReady(true);
+            return true;
+        }
+        entity.setBreedReady(false);
+        return false;
+    }
+
+    public static void successHunt(RedisEntity wolf) {
+        wolf.setBreedReady(true);
+        wolf.setBreedReadyTick(100);
     }
 
     public static void healHp(RedisEntity entity) {
