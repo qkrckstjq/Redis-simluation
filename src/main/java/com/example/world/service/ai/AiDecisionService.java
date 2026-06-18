@@ -74,16 +74,15 @@ public class AiDecisionService {
         if(sheepAiService.keepRun(entity, entityMap)) {
             return;
         }
-
-        List<RedisEntity> nearSheeps = new ArrayList<>();
+        int sheepCount = 0;
         for (RedisEntity target : entities) {
             if(target.getType().equals(TypeEnum.WOLF)) {
                 if(sheepAiService.run(entity, target)) return;
             } else if(target.getType().equals(TypeEnum.SHEEP)) {
                 if(commonAiService.trySpawn(entity, target)) return;
-                nearSheeps.add(target);
+                sheepCount++;
             }
         }
-        sheepAiService.moveOrFlock(entity, nearSheeps);
+        sheepAiService.moveOrFlock(entity, sheepCount);
     }
 }

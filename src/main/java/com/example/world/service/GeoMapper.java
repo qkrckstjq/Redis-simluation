@@ -1,8 +1,6 @@
 package com.example.world.service;
 
 import com.example.world.entity.RedisEntity;
-import com.example.world.entity.StateEnum;
-import com.example.world.entity.TypeEnum;
 import com.example.world.util.ByteTypeConverter;
 import org.springframework.stereotype.Service;
 
@@ -15,17 +13,17 @@ public class GeoMapper {
         Map<byte[], byte[]> map = new HashMap<>();
         map.put(
                 ByteTypeConverter.stringToByte("id"),
-                ByteTypeConverter.IntegerToByte(Math.toIntExact(entity.getId()))
+                ByteTypeConverter.numToByte(Math.toIntExact(entity.getId()))
         );
 
         map.put(
                 ByteTypeConverter.stringToByte("age"),
-                ByteTypeConverter.IntegerToByte(entity.getAge())
+                ByteTypeConverter.numToByte(entity.getAge())
         );
 
         map.put(
                 ByteTypeConverter.stringToByte("hp"),
-                ByteTypeConverter.IntegerToByte(entity.getHp())
+                ByteTypeConverter.numToByte(entity.getHp())
         );
 
         map.put(
@@ -50,7 +48,7 @@ public class GeoMapper {
 
         map.put(
                 ByteTypeConverter.stringToByte("stamina"),
-                ByteTypeConverter.IntegerToByte(entity.getStamina())
+                ByteTypeConverter.numToByte(entity.getStamina())
         );
 
         map.put(
@@ -60,12 +58,17 @@ public class GeoMapper {
 
         map.put(
                 ByteTypeConverter.stringToByte("breedReadyTick"),
-                ByteTypeConverter.IntegerToByte(entity.getBreedReadyTick())
+                ByteTypeConverter.numToByte(entity.getBreedReadyTick())
         );
 
         map.put(
                 ByteTypeConverter.stringToByte("cell"),
                 ByteTypeConverter.stringToByte(entity.getCellKey())
+        );
+
+        map.put(
+                ByteTypeConverter.stringToByte("targetId"),
+                ByteTypeConverter.numToByte(entity.getTargetId())
         );
         return map;
     }
@@ -83,17 +86,17 @@ public class GeoMapper {
         Map<byte[], byte[]> map = new HashMap<>();
         map.put(
                 ByteTypeConverter.stringToByte("id"),
-                ByteTypeConverter.IntegerToByte(id)
+                ByteTypeConverter.numToByte(id)
         );
 
         map.put(
                 ByteTypeConverter.stringToByte("age"),
-                ByteTypeConverter.IntegerToByte(0)
+                ByteTypeConverter.numToByte(0)
         );
 
         map.put(
                 ByteTypeConverter.stringToByte("hp"),
-                ByteTypeConverter.IntegerToByte(hp)
+                ByteTypeConverter.numToByte(hp)
         );
 
         map.put(
@@ -108,17 +111,17 @@ public class GeoMapper {
 
         map.put(
                 ByteTypeConverter.stringToByte("stamina"),
-                ByteTypeConverter.IntegerToByte(stamina)
+                ByteTypeConverter.numToByte(stamina)
         );
 
         map.put(
                 ByteTypeConverter.stringToByte("x"),
-                ByteTypeConverter.IntegerToByte(x)
+                ByteTypeConverter.numToByte(x)
         );
 
         map.put(
                 ByteTypeConverter.stringToByte("y"),
-                ByteTypeConverter.IntegerToByte(y)
+                ByteTypeConverter.numToByte(y)
         );
 
         map.put(
@@ -128,12 +131,17 @@ public class GeoMapper {
 
         map.put(
                 ByteTypeConverter.stringToByte("breedReadyTick"),
-                ByteTypeConverter.IntegerToByte(0)
+                ByteTypeConverter.numToByte(0)
         );
 
         map.put(
                 ByteTypeConverter.stringToByte("cell"),
                 ByteTypeConverter.stringToByte(cellKey)
+        );
+
+        map.put(
+                ByteTypeConverter.stringToByte("targetId"),
+                ByteTypeConverter.stringToByte("null")
         );
         return map;
     }

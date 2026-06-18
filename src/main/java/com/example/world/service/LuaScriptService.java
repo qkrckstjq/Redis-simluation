@@ -37,7 +37,7 @@ public class LuaScriptService implements RedisService {
 
                 String key = "entity:" + i;
                 byte[] entityKey = ByteTypeConverter.stringToByte(key);
-                byte[] curId = ByteTypeConverter.IntegerToByte(i);
+                byte[] curId = ByteTypeConverter.numToByte(i);
                 int randX = RandUtil.getIntRand(GeoUtil.MIN_COORDINATE, GeoUtil.MAX_COORDINATE);
                 int randY = RandUtil.getIntRand(GeoUtil.MIN_COORDINATE, GeoUtil.MAX_COORDINATE);
                 Point point = new Point(GeoUtil.scaleIn(randX), GeoUtil.scaleIn(randY));
@@ -50,7 +50,7 @@ public class LuaScriptService implements RedisService {
 
                 entityMap.put(
                         ByteTypeConverter.stringToByte("hp"),
-                        ByteTypeConverter.IntegerToByte(100)
+                        ByteTypeConverter.numToByte(100)
                 );
 
                 entityMap.put(
@@ -65,17 +65,17 @@ public class LuaScriptService implements RedisService {
 
                 entityMap.put(
                         ByteTypeConverter.stringToByte("stamina"),
-                        ByteTypeConverter.IntegerToByte(100)
+                        ByteTypeConverter.numToByte(100)
                 );
 
                 entityMap.put(
                         ByteTypeConverter.stringToByte("x"),
-                        ByteTypeConverter.IntegerToByte(randX)
+                        ByteTypeConverter.numToByte(randX)
                 );
 
                 entityMap.put(
                         ByteTypeConverter.stringToByte("y"),
-                        ByteTypeConverter.IntegerToByte(randY)
+                        ByteTypeConverter.numToByte(randY)
                 );
 
                 connection.stringCommands().incrBy(RedisKeys.ENTITY_BYTE, 1);
@@ -110,11 +110,11 @@ public class LuaScriptService implements RedisService {
                         RedisKeys.GEO_BYTE,
                         RedisKeys.WORLD_BYTE,
 
-                        ByteTypeConverter.IntegerToByte(entity.getHp()),
+                        ByteTypeConverter.numToByte(entity.getHp()),
                         ByteTypeConverter.stringToByte(String.valueOf(entity.getX())),
                         ByteTypeConverter.stringToByte(String.valueOf(entity.getY())),
                         ByteTypeConverter.stringToByte(entity.getState().getState()),
-                        ByteTypeConverter.IntegerToByte(entity.getStamina()),
+                        ByteTypeConverter.numToByte(entity.getStamina()),
                         ByteTypeConverter.stringToByte(String.valueOf(GeoUtil.scaleIn(entity.getX()))),
                         ByteTypeConverter.stringToByte(String.valueOf(GeoUtil.scaleIn(entity.getY()))),
                         ByteTypeConverter.stringToByte(String.valueOf(entity.getId()))
@@ -155,7 +155,7 @@ public class LuaScriptService implements RedisService {
 
                 connection.setCommands().sAdd(
                         RedisKeys.WORLD_BYTE,
-                        ByteTypeConverter.IntegerToByte((int) id)
+                        ByteTypeConverter.numToByte((int) id)
                 );
 
                 connection.geoCommands().geoAdd(

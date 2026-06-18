@@ -148,7 +148,7 @@ public class EntityService {
 
 
         checkpoint = System.nanoTime();
-        Long nextEntityId = redisRepository.nextEntityId();
+        Long nextEntityId = redisRepository.allocateIds(spawnList.size());
         redisRepository.requestPipeLine(redisService.saveSpawnEntities(spawnList, nextEntityId));
         System.out.printf("[3] save Spawn Entities : %d ms%n",
                 (System.nanoTime() - checkpoint) / 1_000_000);

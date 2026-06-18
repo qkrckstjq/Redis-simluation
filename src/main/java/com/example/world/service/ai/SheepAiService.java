@@ -61,15 +61,13 @@ public class SheepAiService {
 
     public void moveOrFlock(
             RedisEntity entity,
-            List<RedisEntity> nearSheeps
+            int sheepCount
     ) {
-        int size = nearSheeps.size();
-        if(size < 2) {
+        if(sheepCount < 2) {
             entity.setState(StateEnum.MOVE);
-            entity.setTargetId(null);
         } else {
-            entity.setTargetId(nearSheeps.get(size / 2).getId());
             entity.setState(StateEnum.FLOCK);
         }
+        entity.setTargetId(null);
     }
 }

@@ -34,6 +34,13 @@ public class RedisRepository {
         return redisTemplate.opsForValue().increment(RedisKeys.ENTITY_STR);
     }
 
+    public Long allocateIds(int count) {
+        Long lastId = redisTemplate.opsForValue()
+                .increment(RedisKeys.ENTITY_STR, count);
+
+        return lastId - count + 1;
+    }
+
     public Long getEntityId() {
         String value = redisTemplate.opsForValue().get(RedisKeys.ENTITY_STR);
         return value == null ? 0L : Long.parseLong(value);
