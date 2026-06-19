@@ -29,7 +29,8 @@ public class GeoService {
                         RedisKeys.GEO_BYTE,
                         GeoReference.fromMember(memberKey),
                         GeoShape.byRadius(new Distance(range)),
-                        RedisGeoCommands.GeoSearchCommandArgs.newGeoSearchArgs().sortAscending()
+                        RedisGeoCommands.GeoSearchCommandArgs.newGeoSearchArgs()
+                                /*.sortAscending()*/
                 );
             }
         };
