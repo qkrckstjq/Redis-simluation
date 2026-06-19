@@ -13,6 +13,7 @@ import org.springframework.data.redis.connection.RedisGeoCommands;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
+import java.sql.Array;
 import java.util.*;
 
 @Service
@@ -135,7 +136,6 @@ public class EntityClusterMapper implements EntityMapper {
         int range = 10;
 
         for (RedisEntity entity : entities) {
-
             List<RedisEntity> nearbyEntities = new ArrayList<>();
             Set<Long> nearbyIds = new HashSet<>();
 
