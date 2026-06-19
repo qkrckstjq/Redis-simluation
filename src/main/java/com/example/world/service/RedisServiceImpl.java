@@ -25,6 +25,7 @@ import java.util.function.Consumer;
 public class RedisServiceImpl implements RedisService {
     private final GeoService geoService;
     private final GeoMapper geoMapper;
+    private final EntityMapperImpl entityMapper;
 
 //    public List<RedisEntity> getEntities(List<Object> objectList) {
 //        List<RedisEntity> entities = new ArrayList<>();
@@ -223,6 +224,14 @@ public class RedisServiceImpl implements RedisService {
 
     public Consumer<RedisConnection> getNearByIds(List<RedisEntity> entities, int range) {
         return geoService.getNearByIds(entities, range);
+    }
+
+    public Map<Long, List<RedisEntity>> geoSearchNearbyResultToIds(
+            List<RedisEntity> entities,
+            List<Object> geoResults,
+            Map<Long, RedisEntity> entityMap
+    ) {
+        return entityMapper.geoSearchNearbyResultToIds(entities, geoResults, entityMap);
     }
 
     public Consumer<RedisConnection> getCollisionIds(List<NextMove> nextMoveList, double range) {
