@@ -2,12 +2,14 @@ package com.example.world.service;
 
 import com.example.world.entity.NextMove;
 import com.example.world.entity.RedisEntity;
+import com.example.world.entity.StateEnum;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.Cursor;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public interface RedisService {
@@ -15,6 +17,11 @@ public interface RedisService {
     public Consumer<RedisConnection> saveNewEntities(String type, Long nextId, int count);
     public Consumer<RedisConnection> updateEntitiesPipe(List<RedisEntity> entities);
     public Consumer<RedisConnection> getNearByIds(List<RedisEntity> entities, int range);
+    public Map<Long, List<RedisEntity>> geoSearchNearbyResultToIds(
+            List<RedisEntity> entities,
+            List<Object> geoResults,
+            Map<Long, RedisEntity> entityMap
+    );
     public Consumer<RedisConnection> getCollisionIds(List<NextMove> nextMoveList, double range);
     public Consumer<RedisConnection> saveSpawnEntities(List<RedisEntity> spawnList, Long nextEntityId);
 
@@ -45,5 +52,10 @@ public interface RedisService {
                 consumer.accept(batchIds);
             }
         };
+    }
+
+    public default boolean skipGeoSearch(RedisEntity entity) {
+        Long targetId = entity.getTargetId();
+        return (targetId != null);
     }
 }
