@@ -29,6 +29,7 @@ public class LuaScriptService implements RedisService {
     private final CellManager cellManager;
     private final GeoMapper geoMapper;
     private final GeoService geoService;
+    private final EntityMapperImpl entityMapper;
 
     public Consumer<RedisConnection> saveNewEntities(String type, Long nextId, int count) {
         int start = nextId.intValue();
@@ -182,6 +183,14 @@ public class LuaScriptService implements RedisService {
 
     public Consumer<RedisConnection> getNearByIds(List<RedisEntity> entities, int range) {
         return geoService.getNearByIds(entities, range);
+    }
+
+    public Map<Long, List<RedisEntity>> geoSearchNearbyResultToIds(
+            List<RedisEntity> entities,
+            List<Object> geoResults,
+            Map<Long, RedisEntity> entityMap
+    ) {
+        return entityMapper.geoSearchNearbyResultToIds(entities, geoResults, entityMap);
     }
 
     public Consumer<RedisConnection> getCollisionIds(List<NextMove> nextMoveList, double range) {
