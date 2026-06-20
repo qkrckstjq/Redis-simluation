@@ -30,7 +30,7 @@ public class GeoService {
                         GeoReference.fromMember(memberKey),
                         GeoShape.byRadius(new Distance(range)),
                         RedisGeoCommands.GeoSearchCommandArgs.newGeoSearchArgs()
-                                /*.sortAscending()*/
+                                .sortAscending()
                 );
             }
         };

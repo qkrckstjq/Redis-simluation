@@ -89,6 +89,10 @@ public class AiDecisionService {
             return;
         }
 
+        if(sheepAiService.keepFlock(entity, entityMap)) {
+            return;
+        }
+
         if (entities == null || entities.isEmpty()) {
             return;
         }

@@ -39,11 +39,31 @@ public class SheepAiService {
         RedisEntity target = entityMap.get(targetId);
 
         if (target.getType().equals(TypeEnum.SHEEP)) {
-//            entity.setTargetId(null);
+            entity.setTargetId(null);
             return false;
         }
 
         return run(entity, target);
+    }
+
+    public boolean keepFlock(
+            RedisEntity entity,
+            Map<Long, RedisEntity> entityMap
+    ) {
+        if(!entity.getType().equals(StateEnum.FLOCK)) {
+            return false;
+        }
+        Long targetId = entity.getTargetId();
+
+        if(targetId == null)
+            return false;
+
+        RedisEntity target = entityMap.get(targetId);
+
+        if(target == null)
+            return false;
+
+        return !(commonAiService.getDistBetEntities(entity, target) > 5);
     }
 
 //    public boolean trySpawn(
@@ -67,10 +87,10 @@ public class SheepAiService {
         int nearSheepSize = nearSheepList.size();
         if(nearSheepSize < 2) {
             entity.setState(StateEnum.MOVE);
-//            entity.setTargetId(null);
+            entity.setTargetId(null);
             return;
         }
         entity.setState(StateEnum.FLOCK);
-        entity.setTargetId(nearSheepList.get(nearSheepSize / 2).getId());
+        entity.setTargetId(nearSheepList.getFirst().getId());
     }
 }
