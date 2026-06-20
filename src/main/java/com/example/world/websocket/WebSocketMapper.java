@@ -74,6 +74,7 @@ public class WebSocketMapper {
 
             result.add(new EntitySnapshotDto(
                     entity.getId(),
+                    entity.getAge(),
                     entity.getType(),
                     entity.getState(),
                     entity.getStamina(),
@@ -134,8 +135,14 @@ public class WebSocketMapper {
 
             if (!EntityService.isDead(entity)) {
                 result.add(new EntitySnapshotDto(
-                        entity.getId(), entity.getType(), entity.getState(),
-                        entity.getStamina(), entity.getHp(), entity.getX(), entity.getY(),
+                        entity.getId(),
+                        entity.getAge(),
+                        entity.getType(),
+                        entity.getState(),
+                        entity.getStamina(),
+                        entity.getHp(),
+                        entity.getX(),
+                        entity.getY(),
                         new ArrayList<>(nearbyIds),
                         entity.getTargetId()
                 ));
