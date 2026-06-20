@@ -11,6 +11,7 @@ import java.util.List;
 public class EntitySnapshotDto {
 
     private Long id;
+    private int age;
     private TypeEnum type;
     private StateEnum state;
     private int stamina;
@@ -32,6 +33,7 @@ public class EntitySnapshotDto {
 
     public EntitySnapshotDto(
             Long id,
+            int age,
             TypeEnum type,
             StateEnum state,
             int stamina,
@@ -42,6 +44,7 @@ public class EntitySnapshotDto {
             Long targetId
     ) {
         this.id = id;
+        this.age = age;
         this.type = type;
         this.state = state;
         this.stamina = stamina;
