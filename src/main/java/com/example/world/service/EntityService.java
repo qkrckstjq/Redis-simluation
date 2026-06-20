@@ -234,9 +234,12 @@ public class EntityService {
     }
 
     public static boolean isBreedReady(RedisEntity entity) {
-        if(entity.getAge() < 400) return false;
-
         if(entity.getType().equals(TypeEnum.SHEEP)) {
+            if(entity.getAge() < 400) {
+                entity.setBreedReady(false);
+                return false;
+            }
+
             if(entity.getHp() >= 80 && entity.getStamina() >= 50) {
                 entity.setBreedReady(true);
                 return true;
@@ -244,6 +247,7 @@ public class EntityService {
             entity.setBreedReady(false);
             return false;
         }
+
         if(entity.getBreedReadyTick() > 0) {
             entity.setBreedReady(true);
             return true;
@@ -255,10 +259,18 @@ public class EntityService {
     public static void successHunt(RedisEntity wolf) {
         wolf.setBreedReady(true);
         wolf.setBreedReadyTick(100);
-        wolf.decreaseAge(100);
+        wolf.decreaseAge(1000);
+        wolf.setTargetId(null);
     }
 
     public static void healHp(RedisEntity entity) {
         entity.increaseHp();
+    }
+
+    public static void afterBreed(RedisEntity entity) {
+        entity.setHp(entity.getHp() - 20);
+        entity.setStamina(entity.getStamina() - 40);
+        entity.setBreedReady(false);
+        entity.setBreedReadyTick(0);
     }
 }
