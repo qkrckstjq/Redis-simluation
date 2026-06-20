@@ -3,6 +3,7 @@ package com.example.world.service;
 import com.example.world.entity.*;
 import com.example.world.util.GeoUtil;
 import com.example.world.util.RandUtil;
+import org.springframework.boot.web.context.reactive.StandardReactiveWebEnvironment;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -14,8 +15,6 @@ public class BehaviorService {
     public void moveWithCollision(List<NextMove> nextMoves, Map<Long, List<Long>> collisionResults) {
         for (NextMove nextMove : nextMoves) {
             RedisEntity entity = nextMove.getEntity();
-
-            entity.increaseAge();
 
             List<Long> collision =
                     collisionResults.get(entity.getId());
@@ -33,7 +32,9 @@ public class BehaviorService {
             }
 
             if (!EntityService.isDead(entity)) {
+                entity.increaseAge();
                 entity.increaseHp();
+                entity.decreaseBreedTick();
             }
 
             if (collision.isEmpty()) {
@@ -260,8 +261,23 @@ public class BehaviorService {
         int dx = Integer.compare(targetX, curX);
         int dy = Integer.compare(targetY, curY);
 
-        int nextX = GeoUtil.setCoordinate(curX - dx);
-        int nextY = GeoUtil.setCoordinate(curY - dy);
+        int moveX = -dx;
+        int moveY = -dy;
+
+        if (RandUtil.percent(15)) {
+
+            if (Math.abs(dx) >= Math.abs(dy)) {
+                moveY += RandUtil.percent(50) ? 1 : -1;
+            } else {
+                moveX += RandUtil.percent(50) ? 1 : -1;
+            }
+
+            moveX = Math.max(-1, Math.min(1, moveX));
+            moveY = Math.max(-1, Math.min(1, moveY));
+        }
+
+        int nextX = GeoUtil.setCoordinate(curX + moveX);
+        int nextY = GeoUtil.setCoordinate(curY + moveY);
 
         return new BehaviorResult(
                 StateEnum.RUN,
@@ -290,6 +306,7 @@ public class BehaviorService {
 
         target.attackedByWolf();
         if(EntityService.isDead(target)) {
+//            System.out.printf("%d hunt success", entity.getId());
             EntityService.successHunt(entity);
         }
 
@@ -419,17 +436,17 @@ public class BehaviorService {
                 100,
                 childX,
                 childY,
+                false,
+                0,
                 null,
                 null
         );
 
         spawnList.add(child);
 
-        entity.setHp(entity.getHp() - 20);
-        entity.setStamina(entity.getStamina() - 40);
 
-        partner.setHp(partner.getHp() - 20);
-        partner.setStamina(partner.getStamina() - 40);
+        EntityService.afterBreed(entity);
+        EntityService.afterBreed(partner);
 
         return new BehaviorResult(
                 StateEnum.SPAWN,
