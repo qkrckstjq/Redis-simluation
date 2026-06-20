@@ -59,6 +59,8 @@ public interface EntityMapper {
                             Integer.parseInt(map.get("hp")),
                             Integer.parseInt(map.get("x")),
                             Integer.parseInt(map.get("y")),
+                            Boolean.parseBoolean(map.get("breedReady")),
+                            Integer.parseInt(map.get("breedReadyTick")),
                             map.get("cell"),
                             targetId.equals("null") ? null : Long.parseLong(targetId)
                     )
