@@ -2,6 +2,7 @@ package com.example.world.service.ai;
 
 import com.example.world.entity.RedisEntity;
 import com.example.world.entity.StateEnum;
+import com.example.world.entity.TypeEnum;
 import com.example.world.service.EntityService;
 import com.example.world.util.GeoUtil;
 import org.springframework.stereotype.Service;
@@ -23,9 +24,17 @@ public class CommonAiService {
     ) {
         double dist = getDistBetEntities(entity1, entity2);
         if(dist > 1.0) return false;
+        boolean breedableEntity1 = EntityService.isBreedReady(entity1);
+        boolean breedableEntity2 = EntityService.isBreedReady(entity2);
 
-        if(!EntityService.isBreedReady(entity1) || !EntityService.isBreedReady(entity2)) return false;
-
+        if(!breedableEntity1 || !breedableEntity2) return false;
+//        if(entity1.getType().equals(TypeEnum.SHEEP)) {
+//            //양의 경우 두 양 모두 breedReady true여야함
+//            if(!breedableEntity1 || !breedableEntity2) return false;
+//        } else {
+//            //늑대의 경우 두 늑대 중 한마리라도 true면 통과
+//            if(!breedableEntity1 && !breedableEntity2) return false;
+//        }
         entity1.setState(StateEnum.SPAWN);
         entity2.setState(StateEnum.SPAWN);
         entity1.setTargetId(entity2.getId());
