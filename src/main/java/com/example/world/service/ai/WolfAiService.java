@@ -44,6 +44,7 @@ public class WolfAiService {
         } else {
             entity.setState(StateEnum.CHASE);
         }
+        target.setState(StateEnum.RUN);
         entity.setTargetId(target.getId());
         return true;
     }

@@ -5,7 +5,6 @@ import com.example.world.cluster.service.EntityClusterMapper;
 import com.example.world.entity.EntitySnapshotDto;
 import com.example.world.entity.RedisEntity;
 import com.example.world.entity.Tick;
-import com.example.world.service.EntityMapperImpl;
 import com.example.world.service.EntityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.geo.GeoResults;
@@ -81,7 +80,8 @@ public class WebSocketMapper {
                     entity.getHp(),
                     entity.getX(),
                     entity.getY(),
-                    nearbyIds
+                    nearbyIds,
+                    entity.getTargetId()
             ));
         }
         return result;
@@ -89,12 +89,14 @@ public class WebSocketMapper {
 
     public List<EntitySnapshotDto> geoSearchResultsToClusterEntitiesSnapShotDtos(
             List<RedisEntity> entities,
-            List<Object> geoResults
+            List<Object> geoResults,
+            List<RedisEntity> noneTargetEntities
     ) {
         List<EntitySnapshotDto> result = new ArrayList<>();
         int responseIndex = 0;
         int range = 10;
 
+        int idx = 0;
         for (RedisEntity entity : entities) {
 
             int minCellX = (entity.getX() - range) / CellManager.CELL_SIZE;
@@ -107,30 +109,35 @@ public class WebSocketMapper {
                 nearbyIds = new LinkedHashSet<>();
             }
 
-            for (int cellX = minCellX; cellX <= maxCellX; cellX++) {
-                for (int cellY = minCellY; cellY <= maxCellY; cellY++) {
+            if(idx < noneTargetEntities.size() && entity.getId().equals(noneTargetEntities.get(idx).getId())) {
+                idx++;
+                for (int cellX = minCellX; cellX <= maxCellX; cellX++) {
+                    for (int cellY = minCellY; cellY <= maxCellY; cellY++) {
 
-                    if (responseIndex >= geoResults.size()) {
-                        continue;
-                    }
+                        if (responseIndex >= geoResults.size()) {
+                            continue;
+                        }
 
-                    @SuppressWarnings("unchecked")
-                    GeoResults<RedisGeoCommands.GeoLocation<byte[]>> nearResults =
-                            (GeoResults<RedisGeoCommands.GeoLocation<byte[]>>) geoResults.get(responseIndex++);
+                        @SuppressWarnings("unchecked")
+                        GeoResults<RedisGeoCommands.GeoLocation<byte[]>> nearResults =
+                                (GeoResults<RedisGeoCommands.GeoLocation<byte[]>>) geoResults.get(responseIndex++);
 
-                    if (nearbyIds != null && nearResults != null) {
-                        nearbyIds.addAll(
-                                geoMapper.convertNearbyIds(entity.getId(), nearResults)
-                        );
+                        if (nearbyIds != null && nearResults != null) {
+                            nearbyIds.addAll(
+                                    geoMapper.convertNearbyIds(entity.getId(), nearResults)
+                            );
+                        }
                     }
                 }
             }
+
 
             if (!EntityService.isDead(entity)) {
                 result.add(new EntitySnapshotDto(
                         entity.getId(), entity.getType(), entity.getState(),
                         entity.getStamina(), entity.getHp(), entity.getX(), entity.getY(),
-                        new ArrayList<>(nearbyIds)
+                        new ArrayList<>(nearbyIds),
+                        entity.getTargetId()
                 ));
             }
         }

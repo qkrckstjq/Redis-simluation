@@ -61,9 +61,8 @@ public class EventMapper {
 
     private Map<String, String> entityToMap(RedisEntity entity, StateEnum state) {
         Map<String, String> result = new HashMap<>();
-        if(state.equals(ATTACK) || state.equals(RUN)) {
-            result.put("targetId", String.valueOf(entity.getTargetId()));
-        }
+        result.computeIfPresent("targetId",
+                (k, targetId) -> targetId.equals("null") ? null : String.valueOf(entity.getTargetId()));
 
         result.put("x", String.valueOf(entity.getX()));
         result.put("y", String.valueOf(entity.getY()));

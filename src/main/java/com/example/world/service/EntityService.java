@@ -127,10 +127,19 @@ public class EntityService {
                 (System.nanoTime() - checkpoint) / 1_000_000);
 
 
+        List<RedisEntity> noneTargetEntities = entityList.stream()
+                .filter(entity -> !redisService.skipGeoSearch(entity))
+                .toList();
+
         checkpoint = System.nanoTime();
-        List<Object> geoResults = redisRepository.responsePipeLine(redisService.getNearByIds(entityList, 10));
-        Map<Long, List<RedisEntity>> nearEntities = entityMapper.geoSearchNearbyResultToIds(entityList, geoResults, entityMap);
+        List<Object> geoResults = redisRepository.responsePipeLine(redisService.getNearByIds(noneTargetEntities, 10));
         System.out.printf("[2] Nearby Search       : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
+
+
+        checkpoint = System.nanoTime();
+        Map<Long, List<RedisEntity>> nearEntities = redisService.geoSearchNearbyResultToIds(noneTargetEntities, geoResults, entityMap);
+        System.out.printf("[2] Mapping nearby      : %d ms%n",
                 (System.nanoTime() - checkpoint) / 1_000_000);
 
 
@@ -162,7 +171,11 @@ public class EntityService {
 
 
         checkpoint = System.nanoTime();
-        List<EntitySnapshotDto> snapshotDtoList = webSocketMapper.geoSearchResultsToClusterEntitiesSnapShotDtos(entityList, geoResults);
+        List<EntitySnapshotDto> snapshotDtoList = webSocketMapper.geoSearchResultsToClusterEntitiesSnapShotDtos(
+                entityList,
+                geoResults,
+                noneTargetEntities
+        );
         System.out.printf("[6] Snapshot Build      : %d ms%n",
                 (System.nanoTime() - checkpoint) / 1_000_000);
 
@@ -242,6 +255,7 @@ public class EntityService {
     public static void successHunt(RedisEntity wolf) {
         wolf.setBreedReady(true);
         wolf.setBreedReadyTick(100);
+        wolf.decreaseAge(100);
     }
 
     public static void healHp(RedisEntity entity) {

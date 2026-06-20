@@ -6,6 +6,8 @@ import com.example.world.service.EntityService;
 import com.example.world.util.GeoUtil;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+
 @Service
 public class CommonAiService {
     public double getDistBetEntities(
@@ -29,5 +31,25 @@ public class CommonAiService {
         entity1.setTargetId(entity2.getId());
         entity2.setTargetId(entity1.getId());
         return true;
+    }
+
+    public void initTarget(
+            RedisEntity entity,
+            Map<Long, RedisEntity> entityMap
+    ) {
+        Long targetId = entity.getTargetId();
+        if(targetId == null) {
+            entity.setTargetId(null);
+            return;
+        }
+        RedisEntity target = entityMap.get(targetId);
+        if(target == null || EntityService.isDead(target)) {
+            entity.setTargetId(null);
+            return;
+        }
+        double dist = getDistBetEntities(entity, target);
+        if(dist > 10) {
+            entity.setTargetId(null);
+        }
     }
 }

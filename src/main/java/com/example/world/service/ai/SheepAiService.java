@@ -2,6 +2,7 @@ package com.example.world.service.ai;
 
 import com.example.world.entity.RedisEntity;
 import com.example.world.entity.StateEnum;
+import com.example.world.entity.TypeEnum;
 import com.example.world.service.EntityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,14 +36,34 @@ public class SheepAiService {
             return false;
         }
 
-        RedisEntity wolf = entityMap.get(targetId);
+        RedisEntity target = entityMap.get(targetId);
 
-        if (wolf == null || EntityService.isDead(wolf)) {
+        if (target.getType().equals(TypeEnum.SHEEP)) {
             entity.setTargetId(null);
             return false;
         }
 
-        return run(entity, wolf);
+        return run(entity, target);
+    }
+
+    public boolean keepFlock(
+            RedisEntity entity,
+            Map<Long, RedisEntity> entityMap
+    ) {
+        if(!entity.getType().equals(StateEnum.FLOCK)) {
+            return false;
+        }
+        Long targetId = entity.getTargetId();
+
+        if(targetId == null)
+            return false;
+
+        RedisEntity target = entityMap.get(targetId);
+
+        if(target == null)
+            return false;
+
+        return !(commonAiService.getDistBetEntities(entity, target) > 5);
     }
 
 //    public boolean trySpawn(
@@ -61,13 +82,15 @@ public class SheepAiService {
 
     public void moveOrFlock(
             RedisEntity entity,
-            int sheepCount
+            List<RedisEntity> nearSheepList
     ) {
-        if(sheepCount < 2) {
+        int nearSheepSize = nearSheepList.size();
+        if(nearSheepSize < 2) {
             entity.setState(StateEnum.MOVE);
-        } else {
-            entity.setState(StateEnum.FLOCK);
+            entity.setTargetId(null);
+            return;
         }
-        entity.setTargetId(null);
+        entity.setState(StateEnum.FLOCK);
+        entity.setTargetId(nearSheepList.getFirst().getId());
     }
 }

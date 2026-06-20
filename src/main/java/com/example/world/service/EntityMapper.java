@@ -47,6 +47,8 @@ public interface EntityMapper {
                 continue;
             }
 
+            String targetId = map.get("targetId");
+
             entities.add(
                     new RedisEntity(
                             Long.parseLong(map.get("id")),
@@ -57,7 +59,8 @@ public interface EntityMapper {
                             Integer.parseInt(map.get("hp")),
                             Integer.parseInt(map.get("x")),
                             Integer.parseInt(map.get("y")),
-                            map.get("cell")
+                            map.get("cell"),
+                            targetId.equals("null") ? null : Long.parseLong(targetId)
                     )
             );
         }

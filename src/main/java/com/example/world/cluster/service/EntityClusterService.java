@@ -28,6 +28,7 @@ public class EntityClusterService implements RedisService {
     private final CellManager cellManager;
     private final GeoMapper geoMapper;
     private final GeoClusterService geoClusterService;
+    private final EntityClusterMapper entityClusterMapper;
 
     public Consumer<RedisConnection> saveNewEntities(String type, Long nextId, int count) {
         int start = nextId.intValue();
@@ -179,7 +180,22 @@ public class EntityClusterService implements RedisService {
     }
 
     public Consumer<RedisConnection> getNearByIds(List<RedisEntity> entities, int range) {
+//        List<RedisEntity> noneTargetEntities = entities.stream()
+//                .filter(entity -> !this.skipGeoSearch(entity))
+//                .toList();
+
         return geoClusterService.getNearByIds(entities, range);
+    }
+
+    public Map<Long, List<RedisEntity>> geoSearchNearbyResultToIds(
+            List<RedisEntity> entities,
+            List<Object> geoResults,
+            Map<Long, RedisEntity> entityMap
+    ) {
+//        List<RedisEntity> noneTargetEntities = entities.stream()
+//                .filter(entity -> !this.skipGeoSearch(entity))
+//                .toList();
+        return entityClusterMapper.geoSearchNearbyResultToIds(entities, geoResults, entityMap);
     }
 
     public Consumer<RedisConnection> getCollisionIds(List<NextMove> nextMoveList, double range) {

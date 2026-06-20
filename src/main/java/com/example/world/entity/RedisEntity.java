@@ -19,7 +19,18 @@ public class RedisEntity {
     private int breedReadyTick;
     private String cellKey;
 
-    public RedisEntity(Long id, int age, TypeEnum type, StateEnum state, int stamina, int hp, int x, int y, String cellKey) {
+    public RedisEntity(
+            Long id,
+            int age,
+            TypeEnum type,
+            StateEnum state,
+            int stamina,
+            int hp,
+            int x,
+            int y,
+            String cellKey,
+            Long targetId
+    ) {
         this.id = id;
         this.age = age;
         this.type = type;
@@ -31,6 +42,7 @@ public class RedisEntity {
         this.breedReady = false;
         this.breedReadyTick = 0;
         this.cellKey = cellKey;
+        this.targetId = targetId;
     }
 
     public void decreaseStamina() {
@@ -54,6 +66,8 @@ public class RedisEntity {
     public void increaseAge() {
         this.age++;
     }
+
+    public void decreaseAge(int age) { this.age = Math.max(0, this.age - age); }
 
     public boolean checkCellKey(String cellKey) {
         return this.cellKey.equals(cellKey);

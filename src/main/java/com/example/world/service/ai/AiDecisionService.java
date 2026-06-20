@@ -36,6 +36,9 @@ public class AiDecisionService {
             List<RedisEntity> entities,
             Map<Long, RedisEntity> entityMap
     ) {
+
+        commonAiService.initTarget(entity, entityMap);
+
         switch (entity.getType()) {
             case WOLF:
                 wolfAi(entity, entities, entityMap);
@@ -56,14 +59,25 @@ public class AiDecisionService {
             return;
         }
 
+        if (entities == null || entities.isEmpty()) {
+            return;
+        }
+        List<RedisEntity> targetList = new ArrayList<>();
         for (RedisEntity target : entities) {
             if(target.getType().equals(TypeEnum.SHEEP)) {
-                if(wolfAiService.tryAttackOrChase(entity, target)) return;
+                if(targetList.isEmpty()) wolfAiService.tryAttackOrChase(entity, target);
+                targetList.add(target);
             } else if(target.getType().equals(TypeEnum.WOLF)) {
                 if(commonAiService.trySpawn(entity, target)) return;
             }
         }
-        entity.setTargetId(null);
+        targetList.forEach(sheep -> {
+            sheep.setTargetId(entity.getId());
+        });
+
+        if(targetList.isEmpty()) {
+            entity.setTargetId(null);
+        }
     }
 
     public void sheepAi(
@@ -74,15 +88,25 @@ public class AiDecisionService {
         if(sheepAiService.keepRun(entity, entityMap)) {
             return;
         }
-        int sheepCount = 0;
+
+        if(sheepAiService.keepFlock(entity, entityMap)) {
+            return;
+        }
+
+        if (entities == null || entities.isEmpty()) {
+            return;
+        }
+//        int sheepCount = 0;
+        List<RedisEntity> nearSheepList = new ArrayList<>();
         for (RedisEntity target : entities) {
             if(target.getType().equals(TypeEnum.WOLF)) {
                 if(sheepAiService.run(entity, target)) return;
             } else if(target.getType().equals(TypeEnum.SHEEP)) {
                 if(commonAiService.trySpawn(entity, target)) return;
-                sheepCount++;
+                nearSheepList.add(target);
+//                sheepCount++;
             }
         }
-        sheepAiService.moveOrFlock(entity, sheepCount);
+        sheepAiService.moveOrFlock(entity, nearSheepList);
     }
 }
