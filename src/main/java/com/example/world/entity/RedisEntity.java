@@ -28,6 +28,8 @@ public class RedisEntity {
             int hp,
             int x,
             int y,
+            boolean breedReady,
+            int breedReadyTick,
             String cellKey,
             Long targetId
     ) {
@@ -39,8 +41,8 @@ public class RedisEntity {
         this.hp = hp;
         this.x = x;
         this.y = y;
-        this.breedReady = false;
-        this.breedReadyTick = 0;
+        this.breedReady = breedReady;
+        this.breedReadyTick = breedReadyTick;
         this.cellKey = cellKey;
         this.targetId = targetId;
     }
@@ -54,7 +56,7 @@ public class RedisEntity {
     }
 
     public void decreaseBreedTick() {
-        this.breedReadyTick--;
+        this.breedReadyTick = Math.max(this.breedReadyTick - 1, 0);
     }
 
     public void increaseHp() { hp = Math.min(100, hp + 1);}
