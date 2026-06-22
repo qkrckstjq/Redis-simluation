@@ -37,8 +37,8 @@ public class AiDecisionService {
             List<RedisEntity> entities,
             Map<Long, RedisEntity> entityMap
     ) {
-
         commonAiService.initTarget(entity, entityMap);
+        commonAiService.initState(entity, entities);
 
         switch (entity.getType()) {
             case WOLF:
@@ -115,6 +115,7 @@ public class AiDecisionService {
 //                sheepCount++;
             }
         }
+
         sheepAiService.moveOrFlock(entity, nearSheepList);
     }
 }

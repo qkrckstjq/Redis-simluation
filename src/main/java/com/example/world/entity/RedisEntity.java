@@ -74,4 +74,63 @@ public class RedisEntity {
     public boolean checkCellKey(String cellKey) {
         return this.cellKey.equals(cellKey);
     }
+
+
+    public boolean isDead() {
+        return this.hp < 0 || this.age >= 1000;
+    }
+
+    public boolean isBreedReady() {
+        if(this.type.equals(TypeEnum.SHEEP)) {
+            if(this.age < 400) {
+                this.setBreedReady(false);
+                return false;
+            }
+
+            if(this.hp >= 80 && this.stamina >= 50) {
+                this.setBreedReady(true);
+                return true;
+            }
+            this.setBreedReady(false);
+            return false;
+        }
+
+        if(this.breedReadyTick > 0) {
+            this.setBreedReady(true);
+            return true;
+        }
+        this.setBreedReady(false);
+        return false;
+    }
+
+    public void successHunt() {
+        this.setBreedReady(true);
+        this.setBreedReadyTick(100);
+        this.decreaseAge(1000);
+        this.setTargetId(null);
+    }
+
+    public void healHp() {
+        this.increaseHp();
+    }
+
+    public void afterBreed() {
+        this.setHp(this.hp - 20);
+        this.setStamina(this.stamina - 40);
+        this.setBreedReady(false);
+        this.setBreedReadyTick(0);
+    }
+
+//    public boolean canRest() {
+//        if(this.state.equals(StateEnum.REST)) {
+//            if(this.type.equals(TypeEnum.WOLF)) {
+//                return this.age < 500;
+//            }
+//
+//            if(this.type.equals(TypeEnum.SHEEP)) {
+//                return this.stamina < 50;
+//            }
+//        }
+//        return false;
+//    }
 }

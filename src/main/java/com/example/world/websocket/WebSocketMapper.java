@@ -64,7 +64,7 @@ public class WebSocketMapper {
 
         for (int i = 0; i < entities.size(); i++) {
             RedisEntity entity = entities.get(i);
-            if(EntityService.isDead(entity)) continue;
+            if(entity.isDead()) continue;
 
             @SuppressWarnings("unchecked")
             GeoResults<RedisGeoCommands.GeoLocation<byte[]>> nearResults =
@@ -106,7 +106,7 @@ public class WebSocketMapper {
             int maxCellY = (entity.getY() + range) / CellManager.CELL_SIZE;
 
             Set<Long> nearbyIds = null;
-            if (!EntityService.isDead(entity)) {
+            if (!entity.isDead()) {
                 nearbyIds = new LinkedHashSet<>();
             }
 
@@ -133,7 +133,7 @@ public class WebSocketMapper {
             }
 
 
-            if (!EntityService.isDead(entity)) {
+            if (!entity.isDead()) {
                 result.add(new EntitySnapshotDto(
                         entity.getId(),
                         entity.getAge(),

@@ -34,7 +34,7 @@ public class WolfAiService {
             return commonAiService.trySpawn(entity, target);
         }
 
-        if (EntityService.isDead(target))
+        if (target.isDead())
             return false;
 
         return tryAttackOrChase(entity, target);
@@ -48,6 +48,9 @@ public class WolfAiService {
         if(dist <= 1.0) {
             entity.setState(StateEnum.ATTACK);
         } else {
+            if(entity.getStamina() < 50 && entity.getAge() < 500) {
+                entity.setState(StateEnum.REST);
+            }
             entity.setState(StateEnum.CHASE);
         }
         target.setState(StateEnum.RUN);
@@ -61,8 +64,8 @@ public class WolfAiService {
     ) {
         double dist = commonAiService.getDistBetEntities(entity1, entity2);
 
-        boolean breedableEntity1 = EntityService.isBreedReady(entity1);
-        boolean breedableEntity2 = EntityService.isBreedReady(entity2);
+        boolean breedableEntity1 = entity1.isBreedReady();
+        boolean breedableEntity2 = entity2.isBreedReady();
 
         if (dist <= 1.0) return false;
         if (!breedableEntity1 || !breedableEntity2) return false;

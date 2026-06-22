@@ -31,7 +31,7 @@ public class BehaviorService {
                 entity.increaseStamina();
             }
 
-            if (!EntityService.isDead(entity)) {
+            if (!entity.isDead()) {
                 entity.increaseAge();
                 entity.increaseHp();
                 entity.decreaseBreedTick();
@@ -100,16 +100,6 @@ public class BehaviorService {
 //
 //
         boolean dup = occupied.putIfAbsent(position, entity.getId()) != null;
-//        if (occupied.putIfAbsent(position, entity.getId()) != null) {
-//            nextMoves.add(
-//                    new NextMove(
-//                            entity,
-//                            entity.getX(),
-//                            entity.getY()
-//                    )
-//            );
-//            return;
-//        }
         nextMoves.add(
                 new NextMove(
                         entity,
@@ -117,97 +107,36 @@ public class BehaviorService {
                         dup ? entity.getY() : position.getY()
                 )
         );
-
-//        nextMoves.add(
-//                new NextMove(
-//                        entity,
-//                        position.getX(),
-//                        position.getY()
-//                )
-//        );
     }
 
 
     public BehaviorResult moveRand(RedisEntity entity) {
-        if(entity.getStamina() < 50) {
-            entity.setState(StateEnum.REST);
-            return new BehaviorResult(
-                    StateEnum.REST,
-                    new Position(entity.getX(), entity.getY()),
-                    null
-            );
-        }
-
-        boolean keepMove = random.nextInt(10) > 1; // 80%
-        int dx = 0;
-        int dy = 0;
-
-        if(keepMove) {
-            dx = random.nextInt(3) - 1;
-            dy = random.nextInt(3) - 1;
-        } else {
-            entity.setState(StateEnum.IDLE);
-        }
-
+        int dx = random.nextInt(3) - 1;
+        int dy = random.nextInt(3) - 1;
         int nextX = GeoUtil.setCoordinate(entity.getX() + dx);
         int nextY = GeoUtil.setCoordinate(entity.getY() + dy);
 
         return new BehaviorResult(
-                keepMove ? entity.getState() : StateEnum.IDLE,
+                entity.getState(),
                 new Position(nextX, nextY),
                 null
         );
     }
 
     public BehaviorResult moveIDLE(RedisEntity entity) {
-        boolean keepIdle = random.nextInt(10) > 7; //20%
-        int dx = 0;
-        int dy = 0;
-
-        if(!keepIdle) {
-            dx = random.nextInt(3) - 1;
-            dy = random.nextInt(3) - 1;
-            entity.setState(StateEnum.MOVE);
-        }
-
-        int nextX = GeoUtil.setCoordinate(entity.getX() + dx);
-        int nextY = GeoUtil.setCoordinate(entity.getY() + dy);
-
-        return new BehaviorResult(
-                keepIdle ? entity.getState() : StateEnum.MOVE,
-                new Position(nextX, nextY),
-                null
-        );
+        return moveRest(entity);
     }
 
     public BehaviorResult moveRest(RedisEntity entity) {
-        if(entity.getStamina() < 70) {
-            entity.setState(StateEnum.REST);
-            return new BehaviorResult(
-                    StateEnum.REST,
-                    new Position(entity.getX(), entity.getY()),
-                    null
-            );
-        } else {
-            entity.setState(StateEnum.MOVE);
-        }
-
-        int dx = random.nextInt(3) - 1;
-        int dy = random.nextInt(3) - 1;
-
-        int nextX = GeoUtil.setCoordinate(entity.getX() + dx);
-        int nextY = GeoUtil.setCoordinate(entity.getY() + dy);
-
         return new BehaviorResult(
-                StateEnum.MOVE,
-                new Position(nextX, nextY),
+                StateEnum.REST,
+                new Position(entity.getX(), entity.getY()),
                 null
         );
     }
 
     public BehaviorResult moveChase(RedisEntity entity, Map<Long, RedisEntity> entityMap) {
         RedisEntity target = entityMap.get(entity.getTargetId());
-        if(entity.getStamina() < 50) return moveRest(entity);
         if (target == null) {
             entity.setState(StateEnum.MOVE);
             entity.setTargetId(null);
@@ -240,7 +169,6 @@ public class BehaviorService {
 
     public BehaviorResult moveRun(RedisEntity entity, Map<Long, RedisEntity> entityMap) {
         RedisEntity target = entityMap.get(entity.getTargetId());
-        if(entity.getStamina() <= 0) return moveRest(entity);
         if (target == null) {
             entity.setState(StateEnum.MOVE);
             entity.setTargetId(null);
@@ -264,7 +192,7 @@ public class BehaviorService {
         int moveX = -dx;
         int moveY = -dy;
 
-        if (RandUtil.percent(15)) {
+        if (RandUtil.percent(30)) {
 
             if (Math.abs(dx) >= Math.abs(dy)) {
                 moveY += RandUtil.percent(50) ? 1 : -1;
@@ -291,7 +219,6 @@ public class BehaviorService {
             Map<Long, RedisEntity> entityMap
     ) {
         RedisEntity target = entityMap.get(entity.getTargetId());
-        if(entity.getStamina() <= 0) return moveRest(entity);
 
         if (target == null) {
             entity.setState(StateEnum.MOVE);
@@ -305,9 +232,9 @@ public class BehaviorService {
         }
 
         target.attackedByWolf();
-        if(EntityService.isDead(target)) {
+        if(target.isDead()) {
 //            System.out.printf("%d hunt success", entity.getId());
-            EntityService.successHunt(entity);
+            entity.successHunt();
         }
 
         int curX = entity.getX();
@@ -335,60 +262,15 @@ public class BehaviorService {
             Map<Long, List<RedisEntity>> nearEntities
     ) {
 
-//        int curX = entity.getX();
-//        int curY = entity.getY();
-//        int targetX = entity.getX();
-//        int targetY = entity.getY();
-//
-//        List<RedisEntity> nearList = nearEntities.get(entity.getId());
-//        if(nearList == null || nearList.isEmpty()) {
+//        if(entity.getStamina() <= 50) return moveRest(entity);
+//        if(RandUtil.percent(20)){
 //            return moveRand(entity);
 //        }
-//
-//        List<RedisEntity> sheepList = nearEntities.get(entity.getId()).stream()
-//                .filter(e ->  e.getType().equals(TypeEnum.SHEEP))
-//                .toList();
-//        int sheepCount = sheepList.size() + 1;
-//        for(RedisEntity e : sheepList) {
-//            targetX += e.getX();
-//            targetY += e.getY();
-//        }
-//        int avgX = targetX / sheepCount;
-//        int avgY = targetY / sheepCount;
-//
-//        double dist = GeoUtil.getDist(
-//                curX,
-//                curY,
-//                avgX,
-//                avgY
-//        );
-//
-//        if(dist < 2.0){
-//            return moveRand(entity);
-//        }
-//
-//        int dx = Integer.compare(avgX, curX);
-//        int dy = Integer.compare(avgY, curY);
-//
-//        int nextX = GeoUtil.setCoordinate(curX + dx);
-//        int nextY = GeoUtil.setCoordinate(curY + dy);
-//
-//        return new BehaviorResult(
-//                StateEnum.FLOCK,
-//                new Position(nextX, nextY),
-//                entity.getTargetId()
-//        );
-
-
-        if(entity.getStamina() <= 50) return moveRest(entity);
-        if(RandUtil.percent(20)){
-            return moveRand(entity);
-        }
 
         int curX = entity.getX();
         int curY = entity.getY();
         RedisEntity target = entityMap.get(entity.getTargetId());
-        if(target == null) return moveRand(entity);
+//        if(target == null) return moveRand(entity);
         int targetX = target.getX();
         int targetY = target.getY();
 
@@ -445,8 +327,8 @@ public class BehaviorService {
         spawnList.add(child);
 
 
-        EntityService.afterBreed(entity);
-        EntityService.afterBreed(partner);
+        entity.afterBreed();
+        partner.afterBreed();
 
         return new BehaviorResult(
                 StateEnum.SPAWN,
