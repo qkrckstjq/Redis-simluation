@@ -2,6 +2,7 @@ package com.example.world.service.ai;
 
 import com.example.world.entity.RedisEntity;
 import com.example.world.entity.StateEnum;
+import com.example.world.entity.TypeEnum;
 import com.example.world.service.EntityService;
 import com.example.world.util.GeoUtil;
 import lombok.RequiredArgsConstructor;
@@ -25,10 +26,15 @@ public class WolfAiService {
 
         RedisEntity target = entityMap.get(targetId);
 
-        if (target == null)
+        if (target == null) {
             return false;
+        }
 
-        if (EntityService.isDead(target))
+        if(target.getType().equals(TypeEnum.WOLF)) {
+            return commonAiService.trySpawn(entity, target);
+        }
+
+        if (target.isDead())
             return false;
 
         return tryAttackOrChase(entity, target);
@@ -38,14 +44,42 @@ public class WolfAiService {
             RedisEntity entity,
             RedisEntity target
     ) {
+        if(entity.getStamina() <= 0) {
+            entity.setState(StateEnum.REST);
+            return false;
+        }
         double dist = commonAiService.getDistBetEntities(entity, target);
         if(dist <= 1.0) {
             entity.setState(StateEnum.ATTACK);
         } else {
-            entity.setState(StateEnum.CHASE);
+            if(entity.getStamina() < 50 && entity.getAge() < 500) {
+                entity.setState(StateEnum.REST);
+            } else {
+                entity.setState(StateEnum.CHASE);
+            }
         }
         target.setState(StateEnum.RUN);
         entity.setTargetId(target.getId());
+        return true;
+    }
+
+    public boolean followBreedableWolf(
+            RedisEntity entity1,
+            RedisEntity entity2
+    ) {
+        double dist = commonAiService.getDistBetEntities(entity1, entity2);
+
+        boolean breedableEntity1 = entity1.isBreedReady();
+        boolean breedableEntity2 = entity2.isBreedReady();
+
+        if (dist <= 1.0) return false;
+        if (!breedableEntity1 || !breedableEntity2) return false;
+
+        entity1.setState(StateEnum.CHASE);
+        entity1.setTargetId(entity2.getId());
+
+        entity2.setState(StateEnum.CHASE);
+        entity2.setTargetId(entity1.getId());
         return true;
     }
 

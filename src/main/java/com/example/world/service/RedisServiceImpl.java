@@ -139,7 +139,7 @@ public class RedisServiceImpl implements RedisService {
                 String key = "entity:" + entity.getId();
                 byte[] entityKey = ByteTypeConverter.stringToByte(key);
 
-                if(EntityService.isDead(entity)) {
+                if(entity.isDead()) {
                     connection.keyCommands().del(entityKey);
 
                     connection.geoCommands().geoRemove(

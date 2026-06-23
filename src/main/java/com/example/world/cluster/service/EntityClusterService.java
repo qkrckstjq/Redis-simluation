@@ -82,7 +82,7 @@ public class EntityClusterService implements RedisService {
                 byte[] prevCellByteKey = ByteTypeConverter.stringToByte(prevCellKey);
                 byte[] nextCellByteKey = ByteTypeConverter.stringToByte(nextCellKey);
 
-                if(EntityService.isDead(entity)) {
+                if(entity.isDead()) {
                     connection.keyCommands().del(entityByteKey);
                     connection.geoCommands().geoRemove(
                             prevCellByteKey,

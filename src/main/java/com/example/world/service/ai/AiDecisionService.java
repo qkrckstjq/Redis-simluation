@@ -9,6 +9,7 @@ import com.example.world.util.GeoUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.awt.print.Pageable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,8 +37,8 @@ public class AiDecisionService {
             List<RedisEntity> entities,
             Map<Long, RedisEntity> entityMap
     ) {
-
         commonAiService.initTarget(entity, entityMap);
+        commonAiService.initState(entity, entities);
 
         switch (entity.getType()) {
             case WOLF:
@@ -62,13 +63,20 @@ public class AiDecisionService {
         if (entities == null || entities.isEmpty()) {
             return;
         }
+
         List<RedisEntity> targetList = new ArrayList<>();
         for (RedisEntity target : entities) {
             if(target.getType().equals(TypeEnum.SHEEP)) {
                 if(targetList.isEmpty()) wolfAiService.tryAttackOrChase(entity, target);
                 targetList.add(target);
             } else if(target.getType().equals(TypeEnum.WOLF)) {
-                if(commonAiService.trySpawn(entity, target)) return;
+                if(!targetList.isEmpty()) continue;
+                if(wolfAiService.followBreedableWolf(entity, target)) {
+                    return;
+                }
+                if(commonAiService.trySpawn(entity, target)) {
+                    return;
+                }
             }
         }
         targetList.forEach(sheep -> {
@@ -107,6 +115,7 @@ public class AiDecisionService {
 //                sheepCount++;
             }
         }
+
         sheepAiService.moveOrFlock(entity, nearSheepList);
     }
 }
