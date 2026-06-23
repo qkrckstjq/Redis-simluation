@@ -44,14 +44,19 @@ public class WolfAiService {
             RedisEntity entity,
             RedisEntity target
     ) {
+        if(entity.getStamina() <= 0) {
+            entity.setState(StateEnum.REST);
+            return false;
+        }
         double dist = commonAiService.getDistBetEntities(entity, target);
         if(dist <= 1.0) {
             entity.setState(StateEnum.ATTACK);
         } else {
             if(entity.getStamina() < 50 && entity.getAge() < 500) {
                 entity.setState(StateEnum.REST);
+            } else {
+                entity.setState(StateEnum.CHASE);
             }
-            entity.setState(StateEnum.CHASE);
         }
         target.setState(StateEnum.RUN);
         entity.setTargetId(target.getId());

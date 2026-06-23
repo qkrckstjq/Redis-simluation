@@ -70,6 +70,7 @@ public class CommonAiService {
     ) {
         if(entity.getStamina() <= 0) {
             entity.setState(StateEnum.REST);
+//            entity.setTargetId(null);
             return;
         }
         Long targetId = entity.getTargetId();

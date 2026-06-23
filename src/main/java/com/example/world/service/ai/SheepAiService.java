@@ -21,7 +21,11 @@ public class SheepAiService {
             RedisEntity entity,
             RedisEntity target
     ) {
-        entity.setState(StateEnum.RUN);
+        if(entity.getStamina() <= 0) {
+            entity.setState(StateEnum.REST);
+        } else {
+            entity.setState(StateEnum.RUN);
+        }
         entity.setTargetId(target.getId());
         return true;
     }
@@ -66,7 +70,7 @@ public class SheepAiService {
         if(target == null)
             return false;
 
-        if(RandUtil.percent(20)) {
+        if(RandUtil.percent(15)) {
             entity.setState(StateEnum.MOVE);
             entity.setTargetId(null);
             return true;
@@ -102,7 +106,7 @@ public class SheepAiService {
             return;
         }
         int nearSheepSize = nearSheepList.size();
-        if(RandUtil.percent(20) || nearSheepSize < 2) {
+        if(RandUtil.percent(15) || nearSheepSize < 2) {
             entity.setState(StateEnum.MOVE);
             entity.setTargetId(null);
             return;
