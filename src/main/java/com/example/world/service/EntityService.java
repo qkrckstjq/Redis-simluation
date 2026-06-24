@@ -152,7 +152,7 @@ public class EntityService {
         checkpoint = System.nanoTime();
         List<RedisEntity> spawnList = new ArrayList<>();
         List<NextMove> nextMoves = behaviorService.decideMoves(entityList, entityMap, nearEntities, spawnList);
-        System.out.printf("[4] Move Decision       : %d ms%n",
+        System.out.printf("[4] Move Decision with collision : %d ms%n",
                 (System.nanoTime() - checkpoint) / 1_000_000);
 
 

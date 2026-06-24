@@ -108,36 +108,36 @@ public class BehaviorService {
         return result;
     }
 
-    private void resolveMove(
-            RedisEntity entity,
-            BehaviorResult result,
-            Map<Position, Long> occupied,
-            List<NextMove> nextMoves
-    ) {
-
-        Position position = result.getNextPosition();
-//        Long occupiedId = occupied.putIfAbsent(position, entity.getId());
+//    private void resolveMove(
+//            RedisEntity entity,
+//            BehaviorResult result,
+//            Map<Position, Long> occupied,
+//            List<NextMove> nextMoves
+//    ) {
 //
-//        if (occupiedId != null) {
-//            if (entity.getId() == 5805) {
-//                System.out.println(
-//                        "5805 blocked by " + occupiedId +
-//                                " at " + position
-//                );
-//            }
-//            return;
-//        }
-//
-//
-        boolean dup = occupied.putIfAbsent(position, entity.getId()) != null;
-        nextMoves.add(
-                new NextMove(
-                        entity,
-                        dup ? entity.getX() : position.getX(),
-                        dup ? entity.getY() : position.getY()
-                )
-        );
-    }
+//        Position position = result.getNextPosition();
+////        Long occupiedId = occupied.putIfAbsent(position, entity.getId());
+////
+////        if (occupiedId != null) {
+////            if (entity.getId() == 5805) {
+////                System.out.println(
+////                        "5805 blocked by " + occupiedId +
+////                                " at " + position
+////                );
+////            }
+////            return;
+////        }
+////
+////
+//        boolean dup = occupied.putIfAbsent(position, entity.getId()) != null;
+//        nextMoves.add(
+//                new NextMove(
+//                        entity,
+//                        dup ? entity.getX() : position.getX(),
+//                        dup ? entity.getY() : position.getY()
+//                )
+//        );
+//    }
 
 
     public BehaviorResult moveRand(RedisEntity entity) {
