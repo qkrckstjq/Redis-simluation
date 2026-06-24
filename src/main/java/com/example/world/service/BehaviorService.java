@@ -3,6 +3,7 @@ package com.example.world.service;
 import com.example.world.entity.*;
 import com.example.world.util.GeoUtil;
 import com.example.world.util.RandUtil;
+import org.apache.tomcat.websocket.pojo.PojoEndpointServer;
 import org.springframework.boot.web.context.reactive.StandardReactiveWebEnvironment;
 import org.springframework.stereotype.Service;
 
@@ -16,19 +17,19 @@ public class BehaviorService {
         for (NextMove nextMove : nextMoves) {
             RedisEntity entity = nextMove.getEntity();
 
-            List<Long> collision =
-                    collisionResults.get(entity.getId());
+//            List<Long> collision =
+//                    collisionResults.get(entity.getId());
 
             int prevX = entity.getX();
             int prevY = entity.getY();
             int nextX = nextMove.getNextX();
             int nextY = nextMove.getNextY();
+            boolean blocked = !(prevX != nextX || prevY != nextY);
 
-
-            if (prevX != nextX || prevY != nextY) {
-                entity.decreaseStamina();
+            if (blocked) {
+                handleBlockedEntity(entity);
             } else {
-                entity.increaseStamina();
+                handleUnBlockedEntity(entity);
             }
 
             if (!entity.isDead()) {
@@ -37,10 +38,13 @@ public class BehaviorService {
                 entity.decreaseBreedTick();
             }
 
-            if (collision.isEmpty()) {
-                entity.setX(nextX);
-                entity.setY(nextY);
-            }
+//            if (collision.isEmpty()) {
+//                entity.setX(nextX);
+//                entity.setY(nextY);
+//            }
+
+            entity.setX(nextX);
+            entity.setY(nextY);
         }
     }
 
@@ -62,20 +66,46 @@ public class BehaviorService {
         };
     }
 
+//    public List<NextMove> decideMoves(
+//            List<RedisEntity> entities,
+//            Map<Long, RedisEntity> entityMap,
+//            Map<Long, List<RedisEntity>> nearEntities,
+//            List<RedisEntity> spawnList) {
+//
+//        List<NextMove> nextMoves = new ArrayList<>();
+//        Map<Position, Long> map = new HashMap<>();
+//
+//        for (RedisEntity entity : entities) {
+//            BehaviorResult behavior = moveNext(entity, entityMap, nearEntities, spawnList);
+//            resolveMove(entity, behavior, map, nextMoves);
+//        }
+//        return nextMoves;
+//    }
+
     public List<NextMove> decideMoves(
             List<RedisEntity> entities,
             Map<Long, RedisEntity> entityMap,
             Map<Long, List<RedisEntity>> nearEntities,
-            List<RedisEntity> spawnList) {
+            List<RedisEntity> spawnList
+    ) {
 
-        List<NextMove> nextMoves = new ArrayList<>();
-        Map<Position, Long> map = new HashMap<>();
+        List<NextMove> result = new ArrayList<>();
+        CollisionService collisionService = new CollisionService(entities);
 
         for (RedisEntity entity : entities) {
             BehaviorResult behavior = moveNext(entity, entityMap, nearEntities, spawnList);
-            resolveMove(entity, behavior, map, nextMoves);
+            Position nextPosition = behavior.getNextPosition();
+
+            NextMove prevMove = new NextMove(entity, entity.getX(), entity.getY());
+            NextMove nextMove = new NextMove(entity, nextPosition.getX(), nextPosition.getY());
+            if(collisionService.tryMove(nextMove)) {
+                result.add(nextMove);
+            } else {
+                result.add(prevMove);
+            }
         }
-        return nextMoves;
+
+        return result;
     }
 
     private void resolveMove(
@@ -308,7 +338,9 @@ public class BehaviorService {
         int childY = GeoUtil.setCoordinate(
                 entity.getY() + RandUtil.getIntRand(-1, 1)
         );
-
+        if(entity.getType().equals(TypeEnum.WOLF)) {
+            System.out.println("wolf spawn");
+        }
         RedisEntity child = new RedisEntity(
                 null,
                 0,
@@ -323,7 +355,6 @@ public class BehaviorService {
                 null,
                 null
         );
-
         spawnList.add(child);
 
 
@@ -335,5 +366,20 @@ public class BehaviorService {
                 new Position(entity.getX(), entity.getY()),
                 null
         );
+    }
+
+    private void handleBlockedEntity(RedisEntity entity) {
+        entity.increaseStamina();
+        switch (entity.getState()) {
+            case CHASE:
+                entity.setTargetId(null);
+                break;
+            case RUN:
+            case FLOCK:
+        }
+    }
+
+    private void handleUnBlockedEntity(RedisEntity entity) {
+        entity.decreaseStamina();
     }
 }
