@@ -24,8 +24,9 @@ public class CommonAiService {
             RedisEntity entity1,
             RedisEntity entity2
     ) {
+        if(!entity1.getType().equals(entity2.getType())) return false;
         double dist = getDistBetEntities(entity1, entity2);
-        if(dist > 1.0) return false;
+        if(dist > 1.5) return false;
         boolean breedableEntity1 = entity1.isBreedReady();
         boolean breedableEntity2 = entity2.isBreedReady();
 
@@ -81,6 +82,7 @@ public class CommonAiService {
                 entity.setState(StateEnum.MOVE);
             } else {
                 entity.setState(StateEnum.IDLE);
+                entity.setTargetId(null);
             }
         }
     }

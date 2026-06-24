@@ -152,7 +152,7 @@ public class EntityService {
         checkpoint = System.nanoTime();
         List<RedisEntity> spawnList = new ArrayList<>();
         List<NextMove> nextMoves = behaviorService.decideMoves(entityList, entityMap, nearEntities, spawnList);
-        System.out.printf("[4] Move Decision       : %d ms%n",
+        System.out.printf("[4] Move Decision with collision : %d ms%n",
                 (System.nanoTime() - checkpoint) / 1_000_000);
 
 
@@ -163,11 +163,11 @@ public class EntityService {
                 (System.nanoTime() - checkpoint) / 1_000_000);
 
 
-        checkpoint = System.nanoTime();
-        List<Object> geoPosResults = redisRepository.responsePipeLine(redisService.getCollisionIds(nextMoves, 0.2));
-        Map<Long, List<Long>> collisionResults = entityMapper.geoSearchCollisionsToIds(geoPosResults, nextMoves);
-        System.out.printf("[5] Collision Search    : %d ms%n",
-                (System.nanoTime() - checkpoint) / 1_000_000);
+//        checkpoint = System.nanoTime();
+//        List<Object> geoPosResults = redisRepository.responsePipeLine(redisService.getCollisionIds(nextMoves, 0.2));
+//        Map<Long, List<Long>> collisionResults = entityMapper.geoSearchCollisionsToIds(geoPosResults, nextMoves);
+//        System.out.printf("[5] Collision Search    : %d ms%n",
+//                (System.nanoTime() - checkpoint) / 1_000_000);
 
 
         checkpoint = System.nanoTime();
@@ -181,7 +181,7 @@ public class EntityService {
 
 
         checkpoint = System.nanoTime();
-        behaviorService.moveWithCollision(nextMoves, collisionResults);
+        behaviorService.moveWithCollision(nextMoves, null);
         System.out.printf("[7] Apply Move          : %d ms%n",
                 (System.nanoTime() - checkpoint) / 1_000_000);
 

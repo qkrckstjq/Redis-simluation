@@ -49,7 +49,7 @@ public class WolfAiService {
             return false;
         }
         double dist = commonAiService.getDistBetEntities(entity, target);
-        if(dist <= 1.0) {
+        if(dist <= 1.5) {
             entity.setState(StateEnum.ATTACK);
         } else {
             if(entity.getStamina() < 50 && entity.getAge() < 500) {
