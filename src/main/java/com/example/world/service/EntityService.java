@@ -40,7 +40,7 @@ public class EntityService {
         WebSocketMapper webSocketMapper,
         EntityMapper entityMapper,
         BehaviorService behaviorService,
-        RedisService entityClusterService
+        RedisService luaScriptService
     ) {
         this.redisRepository = redisRepository;
         this.webSocketService = webSocketService;
@@ -50,7 +50,7 @@ public class EntityService {
         this.webSocketMapper = webSocketMapper;
         this.entityMapper = entityMapper;
         this.behaviorService = behaviorService;
-        this.redisService = entityClusterService;
+        this.redisService = luaScriptService;
     }
 
     public void createEntity(String type, String name, int hp, int x, int y) {

@@ -1,82 +1,35 @@
-local entityKey      = KEYS[1]
-local prevGeoKey     = KEYS[2]
-local nextGeoKey     = KEYS[3]
-local worldKey       = KEYS[4]
+local entityKey = KEYS[1]
+local geoKey = KEYS[2]
+local worldKey = KEYS[3]
 
-local isDead         = ARGV[1]
-local cellChanged    = ARGV[2]
+local hp = ARGV[1]
+local x = ARGV[2]
+local y = ARGV[3]
+local state = ARGV[4]
+local stamina = ARGV[5]
 
-if isDead == "1" then
+local geoX = ARGV[6]
+local geoY = ARGV[7]
 
-    redis.call("DEL", entityKey)
-
-    redis.call(
-        "ZREM",
-        prevGeoKey,
-        entityKey
-    )
-
-    redis.call(
-        "SREM",
-        worldKey,
-        entityKey
-    )
-
-    return
-end
-
-if cellChanged == "1" then
-
-    redis.call(
-        "DEL",
-        entityKey
-    )
-
-    redis.call(
-        "ZREM",
-        prevGeoKey,
-        entityKey
-    )
-
-    redis.call(
-        "SREM",
-        worldKey,
-        entityKey
-    )
-end
-
-local nextEntityKey = ARGV[3]
+local entityId = ARGV[8]
 
 redis.call(
-    "HSET",
-    nextEntityKey,
+    "HMSET",
+    entityKey,
 
-    "id",ARGV[4],
-    "age",ARGV[5],
-    "type",ARGV[6],
-    "state",ARGV[7],
-    "stamina",ARGV[8],
-    "hp",ARGV[9],
-    "x",ARGV[10],
-    "y",ARGV[11],
-    "breedReady",ARGV[12],
-    "breedReadyTick",ARGV[13],
-    "cellKey",ARGV[14],
-    "targetId",ARGV[15]
+    "hp", hp,
+    "x", x,
+    "y", y,
+    "state", state,
+    "stamina", stamina
 )
 
 redis.call(
     "GEOADD",
-    nextGeoKey,
-    ARGV[16],
-    ARGV[17],
-    nextEntityKey
-)
-
-redis.call(
-    "SADD",
-    worldKey,
-    nextEntityKey
+    geoKey,
+    geoX,
+    geoY,
+    entityId
 )
 
 return 1

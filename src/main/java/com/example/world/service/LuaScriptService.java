@@ -26,77 +26,59 @@ import java.util.function.Consumer;
 @Qualifier("luaScriptService")
 public class LuaScriptService implements RedisService {
     private final String updateEntitySha;
+    private final String createEntitySha;
+    private final String spawnEntitySha;
     private final CellManager cellManager;
     private final GeoMapper geoMapper;
     private final GeoService geoService;
     private final EntityMapperImpl entityMapper;
 
-    public Consumer<RedisConnection> saveNewEntities(String type, Long nextId, int count) {
+    public Consumer<RedisConnection> saveNewEntities(
+            String type,
+            Long nextId,
+            int count
+    ) {
+
         int start = nextId.intValue();
+
         return connection -> {
-            for (int i = start; i < count + start; i++) {
 
-                String key = "entity:" + i;
-                byte[] entityKey = ByteTypeConverter.stringToByte(key);
-                byte[] curId = ByteTypeConverter.numToByte(i);
+            for (int i = start; i < start + count; i++) {
+
                 int randX = RandUtil.getIntRand(GeoUtil.MIN_COORDINATE, GeoUtil.MAX_COORDINATE);
+
                 int randY = RandUtil.getIntRand(GeoUtil.MIN_COORDINATE, GeoUtil.MAX_COORDINATE);
-                Point point = new Point(GeoUtil.scaleIn(randX), GeoUtil.scaleIn(randY));
-                Map<byte[], byte[]> entityMap = new HashMap<>();
 
-                entityMap.put(
-                        ByteTypeConverter.stringToByte("id"),
-                        curId
-                );
+                String cellKey = cellManager.getGeoKey(randX, randY);
 
-                entityMap.put(
-                        ByteTypeConverter.stringToByte("hp"),
-                        ByteTypeConverter.numToByte(100)
-                );
+                String entityKey = "{%s}:entity:%d".formatted(cellKey, i);
 
-                entityMap.put(
-                        ByteTypeConverter.stringToByte("type"),
-                        ByteTypeConverter.stringToByte(TypeEnum.valueOf(type).toString())
-                );
-
-                entityMap.put(
-                        ByteTypeConverter.stringToByte("state"),
-                        ByteTypeConverter.stringToByte(StateEnum.MOVE.getState())
-                );
-
-                entityMap.put(
-                        ByteTypeConverter.stringToByte("stamina"),
-                        ByteTypeConverter.numToByte(100)
-                );
-
-                entityMap.put(
-                        ByteTypeConverter.stringToByte("x"),
-                        ByteTypeConverter.numToByte(randX)
-                );
-
-                entityMap.put(
-                        ByteTypeConverter.stringToByte("y"),
-                        ByteTypeConverter.numToByte(randY)
-                );
-
-                connection.stringCommands().incrBy(RedisKeys.ENTITY_BYTE, 1);
-
-                connection.setCommands().sAdd(
+                connection.scriptingCommands().evalSha(
+                        createEntitySha,
+                        ReturnType.INTEGER,
+                        4,
+                        ByteTypeConverter.stringToByte(entityKey),
+                        ByteTypeConverter.stringToByte(cellKey),
                         RedisKeys.WORLD_BYTE,
-                        curId
+                        RedisKeys.ENTITY_BYTE,
+                        ByteTypeConverter.numToByte(i),
+                        ByteTypeConverter.numToByte(100),
+                        ByteTypeConverter.stringToByte(type),
+                        ByteTypeConverter.stringToByte(StateEnum.MOVE.getState()),
+                        ByteTypeConverter.numToByte(100),
+                        ByteTypeConverter.numToByte(randX),
+                        ByteTypeConverter.numToByte(randY),
+                        ByteTypeConverter.stringToByte(cellKey),
+                        ByteTypeConverter.stringToByte(String.valueOf(GeoUtil.scaleIn(randX))),
+                        ByteTypeConverter.stringToByte(String.valueOf(GeoUtil.scaleIn(randY)))
                 );
-
-                connection.hashCommands().hMSet(
-                        entityKey,
-                        entityMap
-                );
-
-                connection.geoCommands().geoAdd(RedisKeys.GEO_BYTE, point, entityKey);
             }
         };
     }
 
-    public Consumer<RedisConnection> updateEntitiesPipe(List<RedisEntity> entities) {
+    public Consumer<RedisConnection> updateEntitiesPipe(
+            List<RedisEntity> entities
+    ) {
 
         return connection -> {
 
@@ -107,7 +89,10 @@ public class LuaScriptService implements RedisService {
                         ReturnType.INTEGER,
                         3,
 
-                        ByteTypeConverter.stringToByte("entity:" + entity.getId()),
+                        ByteTypeConverter.stringToByte(
+                                "entity:" + entity.getId()
+                        ),
+
                         RedisKeys.GEO_BYTE,
                         RedisKeys.WORLD_BYTE,
 
@@ -121,52 +106,51 @@ public class LuaScriptService implements RedisService {
                         ByteTypeConverter.stringToByte(String.valueOf(entity.getId()))
                 );
             }
-
         };
     }
 
     public Consumer<RedisConnection> saveSpawnEntities(
             List<RedisEntity> spawnList,
-            Long nextEntityId) {
+            Long nextEntityId
+    ) {
 
         return connection -> {
+
             long id = nextEntityId;
+
             for (RedisEntity entity : spawnList) {
+
                 entity.setId(id);
 
-                String cellKey = cellManager.getGeoKey(
-                        entity.getX(),
-                        entity.getY()
-                );
-
+                String cellKey = cellManager.getGeoKey(entity.getX(), entity.getY());
+                entity.setCellKey(cellKey);
                 String entityKey = "{%s}:entity:%d".formatted(cellKey, id);
 
-                entity.setCellKey(cellKey);
-
-                Map<byte[], byte[]> map =
-                        geoMapper.entityToByteMap(entity);
-
-                byte[] entityKeyBytes =
-                        ByteTypeConverter.stringToByte(entityKey);
-
-                connection.hashCommands().hMSet(
-                        entityKeyBytes,
-                        map
-                );
-
-                connection.setCommands().sAdd(
-                        RedisKeys.WORLD_BYTE,
-                        ByteTypeConverter.numToByte((int) id)
-                );
-
-                connection.geoCommands().geoAdd(
+                connection.scriptingCommands().evalSha(
+                        spawnEntitySha,
+                        ReturnType.INTEGER,
+                        3,
+                        ByteTypeConverter.stringToByte(entityKey),
                         ByteTypeConverter.stringToByte(cellKey),
-                        new Point(
-                                GeoUtil.scaleIn(entity.getX()),
-                                GeoUtil.scaleIn(entity.getY())
+                        RedisKeys.WORLD_BYTE,
+                        ByteTypeConverter.numToByte(entity.getId()),
+                        ByteTypeConverter.numToByte(entity.getAge()),
+                        ByteTypeConverter.stringToByte(entity.getType().name()),
+                        ByteTypeConverter.stringToByte(entity.getState().name()),
+                        ByteTypeConverter.numToByte(entity.getStamina()),
+                        ByteTypeConverter.numToByte(entity.getHp()),
+                        ByteTypeConverter.numToByte(entity.getX()),
+                        ByteTypeConverter.numToByte(entity.getY()),
+                        ByteTypeConverter.stringToByte(String.valueOf(entity.isBreedReady())),
+                        ByteTypeConverter.numToByte(entity.getBreedReadyTick()),
+                        ByteTypeConverter.stringToByte(cellKey),
+                        ByteTypeConverter.stringToByte(
+                                entity.getTargetId() == null ? "" : String.valueOf(entity.getTargetId())
                         ),
-                        entityKeyBytes
+                        ByteTypeConverter.stringToByte(String.valueOf(GeoUtil.scaleIn(entity.getX()))),
+                        ByteTypeConverter.stringToByte(String.valueOf(GeoUtil.scaleIn(entity.getY())))
                 );
+
                 id++;
             }
         };
