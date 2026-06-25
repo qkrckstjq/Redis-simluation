@@ -70,7 +70,7 @@ public class SheepAiService {
         if(target == null)
             return false;
 
-        if(RandUtil.percent(15)) {
+        if(RandUtil.percent(5)) {
             entity.setState(StateEnum.MOVE);
             entity.setTargetId(null);
             return true;
@@ -106,7 +106,7 @@ public class SheepAiService {
             return;
         }
         int nearSheepSize = nearSheepList.size();
-        if(RandUtil.percent(15) || nearSheepSize < 2) {
+        if(RandUtil.percent(5) || nearSheepSize < 2) {
             entity.setState(StateEnum.MOVE);
             entity.setTargetId(null);
             return;

@@ -30,6 +30,7 @@ public class EntityService {
     private final Random random = new Random();
     private final int BATCH_SIZE = 100000;
     private final double SCALE = 1000;
+    private final AsyncService asyncService;
 
     public EntityService(
         RedisRepository redisRepository,
@@ -40,7 +41,8 @@ public class EntityService {
         WebSocketMapper webSocketMapper,
         EntityMapper entityMapper,
         BehaviorService behaviorService,
-        RedisService entityClusterService
+        RedisService entityClusterService,
+        AsyncService asyncService
     ) {
         this.redisRepository = redisRepository;
         this.webSocketService = webSocketService;
@@ -51,6 +53,7 @@ public class EntityService {
         this.entityMapper = entityMapper;
         this.behaviorService = behaviorService;
         this.redisService = entityClusterService;
+        this.asyncService = asyncService;
     }
 
     public void createEntity(String type, String name, int hp, int x, int y) {
@@ -192,17 +195,19 @@ public class EntityService {
                 (System.nanoTime() - checkpoint) / 1_000_000);
 
 
-        checkpoint = System.nanoTime();
-        redisRepository.requestPipeLine(streamService.publish(eventMapper.entitiesToEvents(entityList)));
-        System.out.printf("[9] Stream Publish      : %d ms%n",
-                (System.nanoTime() - checkpoint) / 1_000_000);
-
-
-        checkpoint = System.nanoTime();
-        Tick tick = webSocketMapper.redisEntitiesToTick(snapshotDtoList);
-        webSocketService.sendSnapShots(tick);
-        System.out.printf("[10] WebSocket Send     : %d ms%n",
-                (System.nanoTime() - checkpoint) / 1_000_000);
+//        checkpoint = System.nanoTime();
+//        redisRepository.requestPipeLine(streamService.publish(eventMapper.entitiesToEvents(entityList)));
+//        System.out.printf("[9] Stream Publish      : %d ms%n",
+//                (System.nanoTime() - checkpoint) / 1_000_000);
+//
+//
+//        checkpoint = System.nanoTime();
+//        Tick tick = webSocketMapper.redisEntitiesToTick(snapshotDtoList);
+//        webSocketService.sendSnapShots(tick);
+//        System.out.printf("[10] WebSocket Send     : %d ms%n",
+//                (System.nanoTime() - checkpoint) / 1_000_000);
+        asyncService.publish(entityList);
+        asyncService.sendSnapshots(snapshotDtoList);
 
         System.out.printf("TOTAL                 : %d ms%n%n",
                 (System.nanoTime() - totalStart) / 1_000_000);
@@ -228,49 +233,4 @@ public class EntityService {
         String key2 = "entity:" + entity2;
         return redisRepository.getDistBetEntities(key1, key2);
     }
-
-//    public static boolean isDead(RedisEntity entity) {
-//        return entity.getHp() < 0 || entity.getAge() >= 1000;
-//    }
-//
-//    public static boolean isBreedReady(RedisEntity entity) {
-//        if(entity.getType().equals(TypeEnum.SHEEP)) {
-//            if(entity.getAge() < 400) {
-//                entity.setBreedReady(false);
-//                return false;
-//            }
-//
-//            if(entity.getHp() >= 80 && entity.getStamina() >= 50) {
-//                entity.setBreedReady(true);
-//                return true;
-//            }
-//            entity.setBreedReady(false);
-//            return false;
-//        }
-//
-//        if(entity.getBreedReadyTick() > 0) {
-//            entity.setBreedReady(true);
-//            return true;
-//        }
-//        entity.setBreedReady(false);
-//        return false;
-//    }
-//
-//    public static void successHunt(RedisEntity wolf) {
-//        wolf.setBreedReady(true);
-//        wolf.setBreedReadyTick(100);
-//        wolf.decreaseAge(1000);
-//        wolf.setTargetId(null);
-//    }
-//
-//    public static void healHp(RedisEntity entity) {
-//        entity.increaseHp();
-//    }
-//
-//    public static void afterBreed(RedisEntity entity) {
-//        entity.setHp(entity.getHp() - 20);
-//        entity.setStamina(entity.getStamina() - 40);
-//        entity.setBreedReady(false);
-//        entity.setBreedReadyTick(0);
-//    }
 }
