@@ -25,7 +25,6 @@ public class AsyncService {
 
     @Async("streamExecutor")
     public void publish(List<RedisEntity> entityList) {
-
         redisRepository.requestPipeLine(
                 streamService.publish(
                         eventMapper.entitiesToEvents(entityList)
@@ -34,10 +33,26 @@ public class AsyncService {
     }
 
     @Async("webSocketExecutor")
-    public void sendSnapshots(List<EntitySnapshotDto> snapshotDtoList) {
-
+    public void mappingAndSend(
+            List<RedisEntity> entities,
+            List<Object> geoResults,
+            List<RedisEntity> noneTargetEntities
+    ) {
+        List<EntitySnapshotDto> snapshotDtoList = webSocketMapper.geoSearchResultsToClusterEntitiesSnapShotDtos(
+                entities,
+                geoResults,
+                noneTargetEntities
+        );
         Tick tick = webSocketMapper.redisEntitiesToTick(snapshotDtoList);
-
         webSocketService.sendSnapShots(tick);
     }
+
+
+//    @Async("webSocketExecutor")
+//    public void sendSnapshots(List<EntitySnapshotDto> snapshotDtoList) {
+//
+//        Tick tick = webSocketMapper.redisEntitiesToTick(snapshotDtoList);
+//
+//        webSocketService.sendSnapShots(tick);
+//    }
 }

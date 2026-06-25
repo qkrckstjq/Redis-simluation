@@ -147,6 +147,23 @@ public class EntityService {
 
 
         checkpoint = System.nanoTime();
+        List<EntitySnapshotDto> snapshotDtoList = webSocketMapper.geoSearchResultsToClusterEntitiesSnapShotDtos(
+                entityList,
+                geoResults,
+                noneTargetEntities
+        );
+        System.out.printf("[6] Snapshot Build      : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
+
+
+        checkpoint = System.nanoTime();
+        Tick tick = webSocketMapper.redisEntitiesToTick(snapshotDtoList);
+        webSocketService.sendSnapShots(tick);
+        System.out.printf("[10] WebSocket Send     : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
+
+
+        checkpoint = System.nanoTime();
         aiDecisionService.decideState(entityList, nearEntities, entityMap);
         System.out.printf("[3] AI Decision         : %d ms%n",
                 (System.nanoTime() - checkpoint) / 1_000_000);
@@ -174,16 +191,6 @@ public class EntityService {
 
 
         checkpoint = System.nanoTime();
-        List<EntitySnapshotDto> snapshotDtoList = webSocketMapper.geoSearchResultsToClusterEntitiesSnapShotDtos(
-                entityList,
-                geoResults,
-                noneTargetEntities
-        );
-        System.out.printf("[6] Snapshot Build      : %d ms%n",
-                (System.nanoTime() - checkpoint) / 1_000_000);
-
-
-        checkpoint = System.nanoTime();
         behaviorService.moveWithCollision(nextMoves, null);
         System.out.printf("[7] Apply Move          : %d ms%n",
                 (System.nanoTime() - checkpoint) / 1_000_000);
@@ -195,19 +202,10 @@ public class EntityService {
                 (System.nanoTime() - checkpoint) / 1_000_000);
 
 
-//        checkpoint = System.nanoTime();
-//        redisRepository.requestPipeLine(streamService.publish(eventMapper.entitiesToEvents(entityList)));
-//        System.out.printf("[9] Stream Publish      : %d ms%n",
-//                (System.nanoTime() - checkpoint) / 1_000_000);
-//
-//
-//        checkpoint = System.nanoTime();
-//        Tick tick = webSocketMapper.redisEntitiesToTick(snapshotDtoList);
-//        webSocketService.sendSnapShots(tick);
-//        System.out.printf("[10] WebSocket Send     : %d ms%n",
-//                (System.nanoTime() - checkpoint) / 1_000_000);
-        asyncService.publish(entityList);
-        asyncService.sendSnapshots(snapshotDtoList);
+        checkpoint = System.nanoTime();
+        redisRepository.requestPipeLine(streamService.publish(eventMapper.entitiesToEvents(entityList)));
+        System.out.printf("[9] Stream Publish      : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
 
         System.out.printf("TOTAL                 : %d ms%n%n",
                 (System.nanoTime() - totalStart) / 1_000_000);
