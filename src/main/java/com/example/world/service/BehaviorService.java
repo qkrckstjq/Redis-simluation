@@ -338,9 +338,7 @@ public class BehaviorService {
         int childY = GeoUtil.setCoordinate(
                 entity.getY() + RandUtil.getIntRand(-1, 1)
         );
-        if(entity.getType().equals(TypeEnum.WOLF)) {
-            System.out.println("wolf spawn");
-        }
+
         RedisEntity child = new RedisEntity(
                 null,
                 0,

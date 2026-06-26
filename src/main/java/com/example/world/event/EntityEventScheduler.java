@@ -10,9 +10,13 @@ import org.springframework.stereotype.Component;
 public class EntityEventScheduler {
     private final EntityService entityService;
     public static boolean RUN = false;
+    public static boolean ASYNC = true;
 
     @Scheduled(fixedRate = 100)
     public void tick() {
-        if(RUN) entityService.processTickList();
+        if(RUN) {
+            if(ASYNC) entityService.processTickListAsync();
+            else entityService.processTickListSync();
+        }
     }
 }

@@ -74,6 +74,12 @@ public class EntityController {
 
     @PostMapping("/process")
     public void processBatch() {
-        entityService.processTickList();
+        if(EntityEventScheduler.ASYNC) entityService.processTickListAsync();
+        else entityService.processTickListSync();
+    }
+
+    @PostMapping("/async")
+    public void processBatchAsync() {
+        EntityEventScheduler.ASYNC = !EntityEventScheduler.ASYNC;
     }
 }
