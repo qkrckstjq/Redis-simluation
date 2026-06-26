@@ -368,13 +368,13 @@ public class BehaviorService {
 
     private void handleBlockedEntity(RedisEntity entity) {
         entity.increaseStamina();
-        switch (entity.getState()) {
-            case CHASE:
-                entity.setTargetId(null);
-                break;
-            case RUN:
-            case FLOCK:
-        }
+//        switch (entity.getState()) {
+//            case CHASE:
+//                entity.setTargetId(null);
+//                break;
+//            case RUN:
+//            case FLOCK:
+//        }
     }
 
     private void handleUnBlockedEntity(RedisEntity entity) {

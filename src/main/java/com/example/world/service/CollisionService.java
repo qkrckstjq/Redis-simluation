@@ -3,24 +3,30 @@ package com.example.world.service;
 import com.example.world.entity.NextMove;
 import com.example.world.entity.Position;
 import com.example.world.entity.RedisEntity;
+import com.example.world.entity.TypeEnum;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.logging.SocketHandler;
 
 @Component
 public class CollisionService {
 
     private final Map<Position, Set<Long>> board;
+    private final Map<Long, RedisEntity> reverseBoard;
 
     public CollisionService() {
         this.board = new HashMap<>();
+        this.reverseBoard = new HashMap<>();
     }
 
     public CollisionService(List<RedisEntity> entities) {
         this.board = new HashMap<>();
+        this.reverseBoard = new HashMap<>();
 
         for (RedisEntity entity : entities) {
             Long id = entity.getId();
+            reverseBoard.put(id, entity);
 
             Position position = new Position(
                     entity.getX(),
@@ -70,6 +76,15 @@ public class CollisionService {
             }
 
             return true;
+        } else {
+            Set<Long> collisionEntities = board.get(nextPosition);
+            TypeEnum curType = entity.getType();
+            for(Long collisionId : collisionEntities) {
+                RedisEntity target = reverseBoard.get(collisionId);
+                if(!curType.equals(target.getType())) {
+                    entity.setTargetId(null);
+                }
+            }
         }
 
         return false;
