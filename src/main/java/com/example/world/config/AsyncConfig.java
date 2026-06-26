@@ -32,4 +32,26 @@ public class AsyncConfig {
         executor.initialize();
         return executor;
     }
+
+    @Bean("redisUpdateExecutor")
+    public Executor redisUpdateExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(1);
+        executor.setQueueCapacity(1000);
+        executor.setThreadNamePrefix("redisUpdate-");
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean("spawnExecutor")
+    public Executor spawnExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(1);
+        executor.setQueueCapacity(1000);
+        executor.setThreadNamePrefix("spawn-");
+        executor.initialize();
+        return executor;
+    }
 }
