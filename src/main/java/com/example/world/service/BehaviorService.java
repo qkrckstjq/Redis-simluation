@@ -351,7 +351,8 @@ public class BehaviorService {
                 false,
                 0,
                 null,
-                null
+                null,
+                false
         );
         spawnList.add(child);
 
