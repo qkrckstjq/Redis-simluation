@@ -50,6 +50,7 @@ public class GeoClusterService {
                                 RedisGeoCommands.GeoSearchCommandArgs
                                         .newGeoSearchArgs()
                                         .sortAscending()
+                                        .limit(5)
                         );
                     }
                 }
