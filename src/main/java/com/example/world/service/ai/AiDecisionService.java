@@ -49,6 +49,8 @@ public class AiDecisionService {
                 sheepAi(entity, entities, entityMap);
                 break;
         }
+
+        shouldSkipSearch(entity);
     }
 
     public void wolfAi(
@@ -117,5 +119,30 @@ public class AiDecisionService {
         }
 
         sheepAiService.moveOrFlock(entity, nearSheepList);
+    }
+
+    public void shouldSkipSearch(RedisEntity entity) {
+        Long targetId = entity.getTargetId();
+        TypeEnum type = entity.getType();
+        StateEnum state = entity.getState();
+        int age = entity.getAge();
+        boolean breedReady = entity.isBreedReady();
+
+        if(targetId != null) {
+            entity.setSkipSearch(true);
+            return;
+        }
+
+        if(type.equals(TypeEnum.WOLF) && age < 400 && !breedReady) {
+            entity.setSkipSearch(true);
+            return;
+        }
+
+        if(state.equals(StateEnum.REST) && entity.getStamina() < 50) {
+            entity.setSkipSearch(true);
+            return;
+        }
+
+        entity.setSkipSearch(false);
     }
 }
