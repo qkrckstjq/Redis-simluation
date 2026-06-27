@@ -78,7 +78,7 @@ public class CommonAiService {
         if(targetId == null || nearEntities == null || nearEntities.isEmpty()) {
             if((entity.getState().equals(StateEnum.REST) && entity.getStamina() < 70) || entity.getStamina() < 50) {
                 entity.setState(StateEnum.REST);
-            } else if(RandUtil.percent(70)) {
+            } else if(RandUtil.percent(90)) {
                 entity.setState(StateEnum.MOVE);
             } else {
                 entity.setState(StateEnum.IDLE);
