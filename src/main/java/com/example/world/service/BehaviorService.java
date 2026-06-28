@@ -63,7 +63,7 @@ public class BehaviorService {
             case CHASE -> moveChase(entity, entityMap);
             case REST -> moveRest(entity);
             case RUN -> moveRun(entity, entityMap);
-            case FLOCK -> moveFlock(entity, entityMap, nearEntities);
+            case FLOCK -> moveFlock(entity, entityMap);
             case SPAWN -> spawn(entity, entityMap, spawnList);
             default -> throw new IllegalStateException("Unknown state : " + entity.getState());
         };
@@ -290,19 +290,11 @@ public class BehaviorService {
 
     private BehaviorResult moveFlock(
             RedisEntity entity,
-            Map<Long, RedisEntity> entityMap,
-            Map<Long, List<RedisEntity>> nearEntities
+            Map<Long, RedisEntity> entityMap
     ) {
-
-//        if(entity.getStamina() <= 50) return moveRest(entity);
-//        if(RandUtil.percent(20)){
-//            return moveRand(entity);
-//        }
-
         int curX = entity.getX();
         int curY = entity.getY();
         RedisEntity target = entityMap.get(entity.getTargetId());
-//        if(target == null) return moveRand(entity);
         int targetX = target.getX();
         int targetY = target.getY();
 
@@ -333,13 +325,13 @@ public class BehaviorService {
             return moveRand(entity);
         }
 
-        int childX = GeoUtil.setCoordinate(
-                entity.getX() + RandUtil.getIntRand(-1, 1)
-        );
+        Position childP = collisionService.findEmptyPosition(entity, partner);
+        if(childP == null) {
+            return moveFlock(entity, entityMap);
+        }
 
-        int childY = GeoUtil.setCoordinate(
-                entity.getY() + RandUtil.getIntRand(-1, 1)
-        );
+        int childX = childP.getX();
+        int childY = childP.getY();
 
         RedisEntity child = new RedisEntity(
                 null,

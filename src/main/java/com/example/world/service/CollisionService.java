@@ -4,6 +4,8 @@ import com.example.world.entity.NextMove;
 import com.example.world.entity.Position;
 import com.example.world.entity.RedisEntity;
 import com.example.world.entity.TypeEnum;
+import com.example.world.util.GeoUtil;
+import org.apache.tomcat.websocket.pojo.PojoEndpointServer;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -112,5 +114,32 @@ public class CollisionService {
         }
 
         return false;
+    }
+
+    public Position findEmptyPosition(
+            RedisEntity entityA,
+            RedisEntity entityB
+    ) {
+        int aX = entityA.getX();
+        int aY = entityA.getY();
+        int bX = entityB.getX();
+        int bY = entityB.getY();
+
+        int startX = aX == bX ? Math.max(0, aX - 1) : Math.min(aX, bX);
+        int startY = aY == bY ? Math.max(0, aY - 1) : Math.min(aY, bY);
+
+        int endX = Math.min(startX + 3, GeoUtil.MAX_COORDINATE);
+        int endY = Math.min(startY + 3, GeoUtil.MAX_COORDINATE);
+
+        for(int i = startX; i < endX; i++) {
+            for(int j = startY; j < endY; j++) {
+                Position p = new Position(i, j);
+                if(!board.containsKey(p)) {
+                    board.put(p, new HashSet<>());
+                    return p;
+                }
+            }
+        }
+        return null;
     }
 }
