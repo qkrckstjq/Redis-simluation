@@ -12,8 +12,8 @@ import java.util.logging.SocketHandler;
 @Component
 public class CollisionService {
 
-    private final Map<Position, Set<Long>> board;
-    private final Map<Long, RedisEntity> reverseBoard;
+    private Map<Position, Set<Long>> board;
+    private Map<Long, RedisEntity> reverseBoard;
 
     public CollisionService() {
         this.board = new HashMap<>();
@@ -21,6 +21,30 @@ public class CollisionService {
     }
 
     public CollisionService(List<RedisEntity> entities) {
+        this.board = new HashMap<>();
+        this.reverseBoard = new HashMap<>();
+
+        for (RedisEntity entity : entities) {
+            Long id = entity.getId();
+            reverseBoard.put(id, entity);
+
+            Position position = new Position(
+                    entity.getX(),
+                    entity.getY()
+            );
+
+            Set<Long> existEntities =
+                    board.getOrDefault(
+                            position,
+                            new HashSet<>()
+                    );
+
+            existEntities.add(id);
+            board.put(position, existEntities);
+        }
+    }
+
+    public void initBoards(List<RedisEntity> entities) {
         this.board = new HashMap<>();
         this.reverseBoard = new HashMap<>();
 

@@ -3,6 +3,7 @@ package com.example.world.service.ai;
 import com.example.world.entity.RedisEntity;
 import com.example.world.entity.StateEnum;
 import com.example.world.entity.TypeEnum;
+import com.example.world.service.CollisionService;
 import com.example.world.service.EntityMapperImpl;
 import com.example.world.service.EntityService;
 import com.example.world.util.GeoUtil;
@@ -21,12 +22,14 @@ public class AiDecisionService {
     private final SheepAiService sheepAiService;
     private final WolfAiService wolfAiService;
     private final CommonAiService commonAiService;
+    private final CollisionService collisionService;
 
     public void decideState(
             List<RedisEntity> entities,
             Map<Long, List<RedisEntity>> nearEntities,
             Map<Long, RedisEntity> entityMap
     ) {
+        collisionService.initBoards(entities);
         entities.forEach(entity -> {
             decideTypeBehavior(entity, nearEntities.get(entity.getId()), entityMap);
         });
@@ -133,10 +136,10 @@ public class AiDecisionService {
             return;
         }
 
-        if(type.equals(TypeEnum.WOLF) && age < 400 && !breedReady) {
-            entity.setSkipSearch(true);
-            return;
-        }
+//        if(type.equals(TypeEnum.WOLF) && age < 400 && !breedReady) {
+//            entity.setSkipSearch(true);
+//            return;
+//        }
 
         if(state.equals(StateEnum.REST) && entity.getStamina() < 50) {
             entity.setSkipSearch(true);

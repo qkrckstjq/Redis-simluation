@@ -3,6 +3,7 @@ package com.example.world.service;
 import com.example.world.entity.*;
 import com.example.world.util.GeoUtil;
 import com.example.world.util.RandUtil;
+import lombok.RequiredArgsConstructor;
 import org.apache.tomcat.websocket.pojo.PojoEndpointServer;
 import org.springframework.boot.web.context.reactive.StandardReactiveWebEnvironment;
 import org.springframework.stereotype.Service;
@@ -10,8 +11,10 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 
 @Service
+@RequiredArgsConstructor
 public class BehaviorService {
     private final Random random = new Random();
+    private final CollisionService collisionService;
 
     public void moveWithCollision(List<NextMove> nextMoves, Map<Long, List<Long>> collisionResults) {
         for (NextMove nextMove : nextMoves) {
@@ -90,7 +93,6 @@ public class BehaviorService {
     ) {
 
         List<NextMove> result = new ArrayList<>();
-        CollisionService collisionService = new CollisionService(entities);
 
         for (RedisEntity entity : entities) {
             BehaviorResult behavior = moveNext(entity, entityMap, nearEntities, spawnList);

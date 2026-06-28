@@ -38,6 +38,7 @@ public class CommonAiService {
 //            //늑대의 경우 두 늑대 중 한마리라도 true면 통과
 //            if(!breedableEntity1 && !breedableEntity2) return false;
 //        }
+
         entity1.setState(StateEnum.SPAWN);
         entity2.setState(StateEnum.SPAWN);
         entity1.setTargetId(entity2.getId());
