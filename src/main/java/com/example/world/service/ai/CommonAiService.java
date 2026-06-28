@@ -3,16 +3,21 @@ package com.example.world.service.ai;
 import com.example.world.entity.RedisEntity;
 import com.example.world.entity.StateEnum;
 import com.example.world.entity.TypeEnum;
+import com.example.world.service.CollisionService;
 import com.example.world.service.EntityService;
 import com.example.world.util.GeoUtil;
 import com.example.world.util.RandUtil;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class CommonAiService {
+    private final CollisionService collisionService;
+
     public double getDistBetEntities(
             RedisEntity entity1,
             RedisEntity entity2
@@ -78,7 +83,7 @@ public class CommonAiService {
         if(targetId == null || nearEntities == null || nearEntities.isEmpty()) {
             if((entity.getState().equals(StateEnum.REST) && entity.getStamina() < 70) || entity.getStamina() < 50) {
                 entity.setState(StateEnum.REST);
-            } else if(RandUtil.percent(70)) {
+            } else if(RandUtil.percent(90)) {
                 entity.setState(StateEnum.MOVE);
             } else {
                 entity.setState(StateEnum.IDLE);

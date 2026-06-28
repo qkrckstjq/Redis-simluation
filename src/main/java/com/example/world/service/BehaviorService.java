@@ -3,15 +3,16 @@ package com.example.world.service;
 import com.example.world.entity.*;
 import com.example.world.util.GeoUtil;
 import com.example.world.util.RandUtil;
-import org.apache.tomcat.websocket.pojo.PojoEndpointServer;
-import org.springframework.boot.web.context.reactive.StandardReactiveWebEnvironment;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 
 @Service
+@RequiredArgsConstructor
 public class BehaviorService {
     private final Random random = new Random();
+    private final CollisionService collisionService;
 
     public void moveWithCollision(List<NextMove> nextMoves, Map<Long, List<Long>> collisionResults) {
         for (NextMove nextMove : nextMoves) {
@@ -60,7 +61,7 @@ public class BehaviorService {
             case CHASE -> moveChase(entity, entityMap);
             case REST -> moveRest(entity);
             case RUN -> moveRun(entity, entityMap);
-            case FLOCK -> moveFlock(entity, entityMap, nearEntities);
+            case FLOCK -> moveFlock(entity, entityMap);
             case SPAWN -> spawn(entity, entityMap, spawnList);
             default -> throw new IllegalStateException("Unknown state : " + entity.getState());
         };
@@ -90,7 +91,6 @@ public class BehaviorService {
     ) {
 
         List<NextMove> result = new ArrayList<>();
-        CollisionService collisionService = new CollisionService(entities);
 
         for (RedisEntity entity : entities) {
             BehaviorResult behavior = moveNext(entity, entityMap, nearEntities, spawnList);
@@ -288,19 +288,11 @@ public class BehaviorService {
 
     private BehaviorResult moveFlock(
             RedisEntity entity,
-            Map<Long, RedisEntity> entityMap,
-            Map<Long, List<RedisEntity>> nearEntities
+            Map<Long, RedisEntity> entityMap
     ) {
-
-//        if(entity.getStamina() <= 50) return moveRest(entity);
-//        if(RandUtil.percent(20)){
-//            return moveRand(entity);
-//        }
-
         int curX = entity.getX();
         int curY = entity.getY();
         RedisEntity target = entityMap.get(entity.getTargetId());
-//        if(target == null) return moveRand(entity);
         int targetX = target.getX();
         int targetY = target.getY();
 
@@ -331,13 +323,13 @@ public class BehaviorService {
             return moveRand(entity);
         }
 
-        int childX = GeoUtil.setCoordinate(
-                entity.getX() + RandUtil.getIntRand(-1, 1)
-        );
+        Position childP = collisionService.reserveEmptyPosition(entity, partner);
+        if(childP == null) {
+            return moveFlock(entity, entityMap);
+        }
 
-        int childY = GeoUtil.setCoordinate(
-                entity.getY() + RandUtil.getIntRand(-1, 1)
-        );
+        int childX = childP.getX();
+        int childY = childP.getY();
 
         RedisEntity child = new RedisEntity(
                 null,
@@ -351,7 +343,8 @@ public class BehaviorService {
                 false,
                 0,
                 null,
-                null
+                null,
+                false
         );
         spawnList.add(child);
 
@@ -368,13 +361,13 @@ public class BehaviorService {
 
     private void handleBlockedEntity(RedisEntity entity) {
         entity.increaseStamina();
-        switch (entity.getState()) {
-            case CHASE:
-                entity.setTargetId(null);
-                break;
-            case RUN:
-            case FLOCK:
-        }
+//        switch (entity.getState()) {
+//            case CHASE:
+//                entity.setTargetId(null);
+//                break;
+//            case RUN:
+//            case FLOCK:
+//        }
     }
 
     private void handleUnBlockedEntity(RedisEntity entity) {

@@ -18,6 +18,7 @@ public class RedisEntity {
     private boolean breedReady;
     private int breedReadyTick;
     private String cellKey;
+    private boolean skipSearch;
 
     public RedisEntity(
             Long id,
@@ -31,7 +32,8 @@ public class RedisEntity {
             boolean breedReady,
             int breedReadyTick,
             String cellKey,
-            Long targetId
+            Long targetId,
+            boolean skipSearch
     ) {
         this.id = id;
         this.age = age;
@@ -45,6 +47,7 @@ public class RedisEntity {
         this.breedReadyTick = breedReadyTick;
         this.cellKey = cellKey;
         this.targetId = targetId;
+        this.skipSearch = skipSearch;
     }
 
     public void decreaseStamina() {

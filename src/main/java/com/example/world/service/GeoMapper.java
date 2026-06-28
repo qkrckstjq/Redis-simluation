@@ -70,6 +70,11 @@ public class GeoMapper {
                 ByteTypeConverter.stringToByte("targetId"),
                 ByteTypeConverter.numToByte(entity.getTargetId())
         );
+
+        map.put(
+                ByteTypeConverter.stringToByte("skipSearch"),
+                ByteTypeConverter.numToByte(String.valueOf(entity.isSkipSearch()))
+        );
         return map;
     }
 
@@ -142,6 +147,11 @@ public class GeoMapper {
         map.put(
                 ByteTypeConverter.stringToByte("targetId"),
                 ByteTypeConverter.stringToByte("null")
+        );
+
+        map.put(
+                ByteTypeConverter.stringToByte("skipSearch"),
+                ByteTypeConverter.stringToByte(String.valueOf(false))
         );
         return map;
     }

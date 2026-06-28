@@ -62,7 +62,8 @@ public interface EntityMapper {
                             Boolean.parseBoolean(map.get("breedReady")),
                             Integer.parseInt(map.get("breedReadyTick")),
                             map.get("cell"),
-                            targetId.equals("null") ? null : Long.parseLong(targetId)
+                            targetId.equals("null") ? null : Long.parseLong(targetId),
+                            Boolean.parseBoolean(map.get("skipSearch"))
                     )
             );
         }

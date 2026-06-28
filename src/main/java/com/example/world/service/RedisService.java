@@ -55,7 +55,6 @@ public interface RedisService {
     }
 
     public default boolean skipGeoSearch(RedisEntity entity) {
-        Long targetId = entity.getTargetId();
-        return (targetId != null);
+        return entity.isSkipSearch();
     }
 }

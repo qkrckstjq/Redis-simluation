@@ -278,7 +278,7 @@ public class EntityService {
         CompletableFuture<Void> redisUpdateFuture = asyncService.redisUpdateEntities(entityList);
 
         CompletableFuture.allOf(
-                websocketFuture,
+//                websocketFuture,
 //                streamFuture,
                 redisUpdateFuture,
                 spawnFuture
