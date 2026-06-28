@@ -5,11 +5,9 @@ import com.example.world.entity.Position;
 import com.example.world.entity.RedisEntity;
 import com.example.world.entity.TypeEnum;
 import com.example.world.util.GeoUtil;
-import org.apache.tomcat.websocket.pojo.PojoEndpointServer;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
-import java.util.logging.SocketHandler;
 
 @Component
 public class CollisionService {
@@ -116,7 +114,7 @@ public class CollisionService {
         return false;
     }
 
-    public Position findEmptyPosition(
+    public Position reserveEmptyPosition(
             RedisEntity entityA,
             RedisEntity entityB
     ) {

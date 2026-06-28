@@ -4,8 +4,6 @@ import com.example.world.entity.*;
 import com.example.world.util.GeoUtil;
 import com.example.world.util.RandUtil;
 import lombok.RequiredArgsConstructor;
-import org.apache.tomcat.websocket.pojo.PojoEndpointServer;
-import org.springframework.boot.web.context.reactive.StandardReactiveWebEnvironment;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -325,7 +323,7 @@ public class BehaviorService {
             return moveRand(entity);
         }
 
-        Position childP = collisionService.findEmptyPosition(entity, partner);
+        Position childP = collisionService.reserveEmptyPosition(entity, partner);
         if(childP == null) {
             return moveFlock(entity, entityMap);
         }
