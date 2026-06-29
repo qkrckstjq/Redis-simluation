@@ -24,7 +24,6 @@ import java.util.function.Consumer;
 @Qualifier("redisServiceImpl")
 public class RedisServiceImpl implements RedisService {
     private final GeoService geoService;
-    private final GeoMapper geoMapper;
     private final EntityMapperImpl entityMapper;
 
 //    public List<RedisEntity> getEntities(List<Object> objectList) {
@@ -159,7 +158,7 @@ public class RedisServiceImpl implements RedisService {
 
                 Point point = new Point(GeoUtil.scaleIn(entity.getX()), GeoUtil.scaleIn(entity.getY()));
 
-                Map<byte[], byte[]> map = geoMapper.entityToByteMap(entity);
+                Map<byte[], byte[]> map = EntityMapper.entityToByteMap(entity);
 
                 connection.geoCommands().geoAdd(RedisKeys.GEO_BYTE, point, entityKey);
                 connection.hashCommands().hMSet(entityKey, map);
@@ -194,7 +193,7 @@ public class RedisServiceImpl implements RedisService {
                 entity.setId(id);
                 String entityKey = "entity:" + id;
 
-                Map<byte[], byte[]> map = geoMapper.entityToByteMap(entity);
+                Map<byte[], byte[]> map = EntityMapper.entityToByteMap(entity);
 
                 byte[] entityKeyBytes = ByteTypeConverter.stringToByte(entityKey);
 

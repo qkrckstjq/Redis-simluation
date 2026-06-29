@@ -13,12 +13,12 @@ import java.util.List;
 import static com.example.world.service.batch.BatchProcessor.BATCH_SIZE;
 
 @Service
-public class EntityServiceImpl implements EntityService {
+public class RedisEntityService implements EntityService {
     private final RedisRepository redisRepository;
     private final RedisService redisService;
     private final BatchProcessor batchProcessor;
 
-    public EntityServiceImpl(
+    public RedisEntityService(
         RedisRepository redisRepository,
         RedisService entityClusterService,
         BatchProcessor batchProcessor

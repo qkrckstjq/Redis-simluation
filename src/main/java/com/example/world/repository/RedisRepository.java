@@ -19,8 +19,10 @@ import org.springframework.data.redis.domain.geo.GeoReference;
 import org.springframework.data.redis.domain.geo.Metrics;
 import org.springframework.stereotype.Repository;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 @Repository
@@ -152,12 +154,35 @@ public class RedisRepository {
         );
     }
 
+    public <T> T scanWithCursor(
+            Supplier<Cursor<byte[]>> cursorSupplier,
+            Function<Cursor<byte[]>, T> function
+    ) {
+        try (Cursor<byte[]> cursor = cursorSupplier.get()) {
+            return function.apply(cursor);
+        }
+    }
+
     public void scanWithCursor(
             Supplier<Cursor<byte[]>> cursorSupplier,
             Consumer<Cursor<byte[]>> consumer
     ) {
         try (Cursor<byte[]> cursor = cursorSupplier.get()) {
             consumer.accept(cursor);
+        }
+    }
+
+    public List<String> getAllEntityIds(int count) {
+
+        try (Cursor<byte[]> cursor = scanWorldEntities(count)) {
+
+            List<String> ids = new ArrayList<>();
+
+            while (cursor.hasNext()) {
+                ids.add(new String(cursor.next(), StandardCharsets.UTF_8));
+            }
+
+            return ids;
         }
     }
 

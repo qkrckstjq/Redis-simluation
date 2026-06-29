@@ -3,7 +3,7 @@ package com.example.world.controller;
 import com.example.world.entity.EntityHistoryDto;
 import com.example.world.entity.RedisGeo;
 import com.example.world.event.EntityEventScheduler;
-import com.example.world.service.EntityService;
+import com.example.world.service.RedisEntityService;
 import com.example.world.stream.HistoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,7 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @CrossOrigin("*")
 public class EntityController {
-    private final EntityService entityService;
+    private final RedisEntityService redisEntityService;
     private final HistoryService historyService;
 
     @PostMapping("/")
@@ -28,7 +28,7 @@ public class EntityController {
             @RequestParam int x,
             @RequestParam int y
     ) {
-        entityService.createEntity(type, name, hp, x, y);
+        redisEntityService.createEntity(type, name, hp, x, y);
         return new ResponseEntity<>("앤티티 생성 성공",HttpStatus.CREATED);
     }
 
@@ -37,7 +37,7 @@ public class EntityController {
             @RequestParam String type,
             @RequestParam int count
     ) {
-        entityService.createEntityAmount(type, count);
+        redisEntityService.createEntityAmount(type, count);
         return new ResponseEntity<>(type + "타입" + " 앤티티 " + count + " 생성 성공",HttpStatus.CREATED);
     }
 
@@ -46,7 +46,7 @@ public class EntityController {
             @RequestParam Long entity,
             @RequestParam double radius
     ) {
-        List<RedisGeo> result = entityService.getNearEntities(entity, radius);
+        List<RedisGeo> result = redisEntityService.getNearEntities(entity, radius);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
@@ -55,7 +55,7 @@ public class EntityController {
             @RequestParam Long entity1,
             @RequestParam Long entity2
     ) {
-        Double result = entityService.getDistBetEntities(entity1, entity2);
+        Double result = redisEntityService.getDistBetEntities(entity1, entity2);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
@@ -74,8 +74,8 @@ public class EntityController {
 
     @PostMapping("/process")
     public void processBatch() {
-        if(EntityEventScheduler.ASYNC) entityService.processTickListAsync();
-        else entityService.processTickListSync();
+        if(EntityEventScheduler.ASYNC) redisEntityService.processTickListAsync();
+        else redisEntityService.processTickListSync();
     }
 
     @PostMapping("/async")
