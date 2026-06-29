@@ -361,6 +361,7 @@ public class BehaviorService {
 
     private void handleBlockedEntity(RedisEntity entity) {
         entity.increaseStamina();
+        entity.setSkipGeoUpdate(true);
 //        switch (entity.getState()) {
 //            case CHASE:
 //                entity.setTargetId(null);
