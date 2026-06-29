@@ -19,6 +19,7 @@ public class RedisEntity {
     private int breedReadyTick;
     private String cellKey;
     private boolean skipSearch;
+    private boolean skipGeoUpdate;
 
     public RedisEntity(
             Long id,
@@ -48,6 +49,7 @@ public class RedisEntity {
         this.cellKey = cellKey;
         this.targetId = targetId;
         this.skipSearch = skipSearch;
+        this.skipGeoUpdate = false;
     }
 
     public void decreaseStamina() {
