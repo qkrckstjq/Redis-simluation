@@ -5,8 +5,7 @@ import com.example.world.constants.RedisKeys;
 import com.example.world.entity.NextMove;
 import com.example.world.entity.RedisEntity;
 import com.example.world.entity.StateEnum;
-import com.example.world.service.EntityService;
-import com.example.world.service.GeoMapper;
+import com.example.world.service.EntityMapper;
 import com.example.world.service.RedisService;
 import com.example.world.util.ByteTypeConverter;
 import com.example.world.util.GeoUtil;
@@ -26,7 +25,6 @@ import java.util.function.Consumer;
 @Qualifier("entityClusterService")
 public class EntityClusterService implements RedisService {
     private final CellManager cellManager;
-    private final GeoMapper geoMapper;
     private final GeoClusterService geoClusterService;
     private final EntityClusterMapper entityClusterMapper;
 
@@ -43,7 +41,7 @@ public class EntityClusterService implements RedisService {
                 byte[] cellByteKey = ByteTypeConverter.stringToByte(cellKey);
                 Point point = new Point(GeoUtil.scaleIn(randX), GeoUtil.scaleIn(randY));
 
-                Map<byte[], byte[]> entityMap = geoMapper.newEntityToByteMap(
+                Map<byte[], byte[]> entityMap = EntityMapper.newEntityToByteMap(
                         i,
                         100,
                         type,
@@ -111,9 +109,11 @@ public class EntityClusterService implements RedisService {
                 byte[] nextEntityByteKey = ByteTypeConverter.stringToByte("{%s}:entity:%d".formatted(nextCellKey, entity.getId()));
                 Point point = new Point(GeoUtil.scaleIn(entity.getX()), GeoUtil.scaleIn(entity.getY()));
 
-                Map<byte[], byte[]> map = geoMapper.entityToByteMap(entity);
+                Map<byte[], byte[]> map = EntityMapper.entityToByteMap(entity);
 
-                connection.geoCommands().geoAdd(nextCellByteKey, point, nextEntityByteKey);
+                if(!entity.isSkipGeoUpdate()) {
+                    connection.geoCommands().geoAdd(nextCellByteKey, point, nextEntityByteKey);
+                }
                 connection.hashCommands().hMSet(nextEntityByteKey, map);
                 connection.setCommands().sAdd(
                         RedisKeys.WORLD_BYTE,
@@ -143,7 +143,7 @@ public class EntityClusterService implements RedisService {
                 entity.setCellKey(cellKey);
 
                 Map<byte[], byte[]> map =
-                        geoMapper.entityToByteMap(entity);
+                        EntityMapper.entityToByteMap(entity);
 
                 byte[] entityKeyBytes =
                         ByteTypeConverter.stringToByte(entityKey);
@@ -180,10 +180,6 @@ public class EntityClusterService implements RedisService {
     }
 
     public Consumer<RedisConnection> getNearByIds(List<RedisEntity> entities, int range) {
-//        List<RedisEntity> noneTargetEntities = entities.stream()
-//                .filter(entity -> !this.skipGeoSearch(entity))
-//                .toList();
-
         return geoClusterService.getNearByIds(entities, range);
     }
 
@@ -192,9 +188,6 @@ public class EntityClusterService implements RedisService {
             List<Object> geoResults,
             Map<Long, RedisEntity> entityMap
     ) {
-//        List<RedisEntity> noneTargetEntities = entities.stream()
-//                .filter(entity -> !this.skipGeoSearch(entity))
-//                .toList();
         return entityClusterMapper.geoSearchNearbyResultToIds(entities, geoResults, entityMap);
     }
 
