@@ -8,6 +8,7 @@ import com.example.world.repository.RedisRepository;
 import com.example.world.service.*;
 import com.example.world.service.ai.AiDecisionService;
 import com.example.world.service.inmemory.EntityManager;
+import com.example.world.service.inmemory.InMemoryRedisService;
 import com.example.world.stream.StreamService;
 import com.example.world.websocket.WebSocketMapper;
 import com.example.world.websocket.WebSocketService;
@@ -31,6 +32,7 @@ public class BatchProcessor {
     private final EntityMapper entityMapper;
     private final BehaviorService behaviorService;
     private final RedisService redisService;
+    private final InMemoryRedisService inMemoryRedisService;
     private final Random random = new Random();
     public static final int BATCH_SIZE = 100000;
     private final double SCALE = 1000;
@@ -47,6 +49,7 @@ public class BatchProcessor {
             EntityMapper entityMapper,
             BehaviorService behaviorService,
             RedisService entityClusterService,
+            InMemoryRedisService inMemoryRedisService,
             AsyncService asyncService,
             EntityManager entityManager
     ) {
@@ -59,6 +62,7 @@ public class BatchProcessor {
         this.entityMapper = entityMapper;
         this.behaviorService = behaviorService;
         this.redisService = entityClusterService;
+        this.inMemoryRedisService = inMemoryRedisService;
         this.asyncService = asyncService;
         this.entityManager = entityManager;
     }
@@ -197,8 +201,8 @@ public class BatchProcessor {
         System.out.printf("[5] Move Decision with collision : %d ms%n",
                 (System.nanoTime() - checkpoint) / 1_000_000);
 
-
-        CompletableFuture<Void> spawnFuture = asyncService.spawnEntities(spawnList);
+        Long nextEntityId = redisRepository.allocateIds(spawnList.size());
+        CompletableFuture<Void> spawnFuture = asyncService.spawnEntities(spawnList, nextEntityId);
 
 
         checkpoint = System.nanoTime();
@@ -207,6 +211,87 @@ public class BatchProcessor {
                 (System.nanoTime() - checkpoint) / 1_000_000);
 
         CompletableFuture<Void> redisUpdateFuture = asyncService.redisUpdateEntities(entityList);
+
+        CompletableFuture.allOf(
+//                websocketFuture,
+//                streamFuture,
+                redisUpdateFuture,
+                spawnFuture
+        ).join();
+
+        System.out.printf("[Async] Total             : %d ms%n",
+                (System.nanoTime() - asyncStart) / 1_000_000);
+
+        System.out.printf("TOTAL                 : %d ms%n%n",
+                (System.nanoTime() - totalStart) / 1_000_000);
+    }
+
+    public void processInMemoryAsync() {
+        long totalStart = System.nanoTime();
+        long curTick = webSocketMapper.getTick();
+
+
+        long checkpoint = totalStart;
+        entityManager.initEntityList();
+        List<RedisEntity> entityList = entityManager.getEntityList();
+        Map<Long, RedisEntity> entityMap = entityManager.getEntityMap();
+        System.out.printf("[1] Entity Read         : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
+
+        if(curTick % 10 == 0) asyncService.redisHashFlush(entityList);
+
+
+        List<RedisEntity> noneTargetEntities = entityList.stream()
+                .filter(entity -> !redisService.skipGeoSearch(entity))
+                .toList();
+
+
+        checkpoint = System.nanoTime();
+        List<Object> geoResults = redisRepository.responsePipeLine(redisService.getNearByIds(noneTargetEntities, 10));
+        System.out.printf("[2] Nearby Search       : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
+
+
+        long asyncStart = System.nanoTime();
+        CompletableFuture<Void> websocketFuture = asyncService.mappingAndSend(entityList, geoResults, noneTargetEntities);
+        CompletableFuture<Void> streamFuture = asyncService.publish(entityList);
+
+
+        checkpoint = System.nanoTime();
+        Map<Long, List<RedisEntity>> nearEntities = redisService.geoSearchNearbyResultToIds(noneTargetEntities, geoResults, entityMap);
+        System.out.printf("[3] Mapping nearby      : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
+
+
+        checkpoint = System.nanoTime();
+        aiDecisionService.decideState(entityList, nearEntities, entityMap);
+        System.out.printf("[4] AI Decision         : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
+
+
+        checkpoint = System.nanoTime();
+        List<RedisEntity> spawnList = new ArrayList<>();
+        List<NextMove> nextMoves = behaviorService.decideMoves(entityList, entityMap, nearEntities, spawnList);
+        System.out.printf("[5] Move Decision with collision : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
+
+
+        checkpoint = System.nanoTime();
+        Long nextEntityId = redisRepository.allocateIds(spawnList.size());
+        CompletableFuture<Void> spawnFuture = asyncService.spawnEntities(spawnList, nextEntityId);
+        entityManager.addAllEntities(spawnList, nextEntityId);
+        System.out.printf("[6] Add Spawn Entities          : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
+
+
+        checkpoint = System.nanoTime();
+        behaviorService.moveWithCollision(nextMoves, null);
+        System.out.printf("[7] Apply Move          : %d ms%n",
+                (System.nanoTime() - checkpoint) / 1_000_000);
+
+
+        CompletableFuture<Void> redisUpdateFuture = asyncService.redisUpdateEntitiesInMemory(entityList, nextEntityId);
+
 
         CompletableFuture.allOf(
 //                websocketFuture,
