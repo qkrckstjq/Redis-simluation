@@ -12,7 +12,7 @@ import java.util.List;
 
 import static com.example.world.service.batch.BatchProcessor.BATCH_SIZE;
 
-@Service
+@Service("redisEntityService")
 public class RedisEntityService implements EntityService {
     private final RedisRepository redisRepository;
     private final RedisService redisService;
@@ -49,6 +49,10 @@ public class RedisEntityService implements EntityService {
         redisRepository.scanWithCursor(
                 () -> redisRepository.scanWorldEntities(BATCH_SIZE),
                 redisService.batchConsumer(BATCH_SIZE, batchProcessor::processAsync));
+    }
+
+    public void processTickListInMemoryAsync() {
+        batchProcessor.processInMemoryAsync();
     }
 
 //    private void processBatch(List<String> ids) {

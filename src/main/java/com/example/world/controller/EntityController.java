@@ -1,11 +1,15 @@
 package com.example.world.controller;
 
 import com.example.world.entity.EntityHistoryDto;
+import com.example.world.entity.RedisEntity;
 import com.example.world.entity.RedisGeo;
 import com.example.world.event.EntityEventScheduler;
+import com.example.world.service.EntityService;
 import com.example.world.service.RedisEntityService;
+import com.example.world.service.inmemory.EntityManager;
 import com.example.world.stream.HistoryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,11 +18,18 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/entity")
-@RequiredArgsConstructor
 @CrossOrigin("*")
 public class EntityController {
-    private final RedisEntityService redisEntityService;
+    private final EntityService redisEntityService;
     private final HistoryService historyService;
+
+    public EntityController(
+            EntityService entityService,
+            HistoryService historyService
+    ) {
+        this.redisEntityService = entityService;
+        this.historyService = historyService;
+    }
 
     @PostMapping("/")
     public ResponseEntity<String> createEntity(
