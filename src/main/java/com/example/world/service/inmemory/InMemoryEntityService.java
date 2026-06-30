@@ -6,6 +6,7 @@ import com.example.world.service.EntityService;
 import com.example.world.service.RedisService;
 import com.example.world.service.batch.BatchProcessor;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.geo.GeoResults;
 import org.springframework.data.geo.Point;
 import org.springframework.data.redis.connection.RedisGeoCommands;
@@ -13,21 +14,21 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Service
+@Service("inMemoryEntityService")
 public class InMemoryEntityService implements EntityService {
     private final RedisRepository redisRepository;
-    private final RedisService redisService;
+    private final InMemoryRedisService inMemoryRedisService;
     private final BatchProcessor batchProcessor;
     private final EntityManager entityManager;
 
     public InMemoryEntityService(
             RedisRepository redisRepository,
-            RedisService inMemoryRedisService,
+            InMemoryRedisService inMemoryRedisService,
             BatchProcessor batchProcessor,
             EntityManager entityManager
     ) {
         this.redisRepository = redisRepository;
-        this.redisService = inMemoryRedisService;
+        this.inMemoryRedisService = inMemoryRedisService;
         this.batchProcessor = batchProcessor;
         this.entityManager = entityManager;
     }
@@ -37,17 +38,17 @@ public class InMemoryEntityService implements EntityService {
     @Override
     public void createEntityAmount(String type, int count) {
         Long curId = redisRepository.getEntityId();
-        redisRepository.requestPipeLine(redisService.saveNewEntities(type, curId + 1, count));
+        redisRepository.requestPipeLine(inMemoryRedisService.saveNewEntities(type, curId + 1, count));
     }
 
     @Override
     public void processTickListSync() {
-
+        batchProcessor.processInMemoryAsync();
     }
 
     @Override
     public void processTickListAsync() {
-
+        batchProcessor.processInMemoryAsync();
     }
 
     public List<RedisGeo> getNearEntities(Long base, double range) {
