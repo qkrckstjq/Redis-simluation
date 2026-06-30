@@ -124,6 +124,11 @@ public class LuaScriptService implements RedisService {
         };
     }
 
+    @Override
+    public Consumer<RedisConnection> updateEntitiesPipe(List<RedisEntity> entities, Long nextEntityId) {
+        return null;
+    }
+
     public Consumer<RedisConnection> saveSpawnEntities(
             List<RedisEntity> spawnList,
             Long nextEntityId) {

@@ -166,6 +166,11 @@ public class RedisServiceImpl implements RedisService {
         };
     }
 
+    @Override
+    public Consumer<RedisConnection> updateEntitiesPipe(List<RedisEntity> entities, Long nextEntityId) {
+        return null;
+    }
+
     public Consumer<RedisConnection> getEntityIds(List<String> ids) {
         return connection -> {
             for (String id : ids) {
