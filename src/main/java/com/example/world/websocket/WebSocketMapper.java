@@ -5,7 +5,6 @@ import com.example.world.cluster.service.EntityClusterMapper;
 import com.example.world.entity.EntitySnapshotDto;
 import com.example.world.entity.RedisEntity;
 import com.example.world.entity.Tick;
-import com.example.world.service.EntityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.geo.GeoResults;
 import org.springframework.data.redis.connection.RedisGeoCommands;

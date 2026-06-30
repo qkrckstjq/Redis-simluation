@@ -3,7 +3,6 @@ package com.example.world.service.ai;
 import com.example.world.entity.RedisEntity;
 import com.example.world.entity.StateEnum;
 import com.example.world.entity.TypeEnum;
-import com.example.world.service.EntityService;
 import com.example.world.util.RandUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

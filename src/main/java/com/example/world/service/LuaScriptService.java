@@ -27,7 +27,6 @@ import java.util.function.Consumer;
 public class LuaScriptService implements RedisService {
     private final String updateEntitySha;
     private final CellManager cellManager;
-    private final GeoMapper geoMapper;
     private final GeoService geoService;
     private final EntityMapperImpl entityMapper;
 
@@ -125,6 +124,11 @@ public class LuaScriptService implements RedisService {
         };
     }
 
+    @Override
+    public Consumer<RedisConnection> updateEntitiesPipe(List<RedisEntity> entities, Long nextEntityId) {
+        return null;
+    }
+
     public Consumer<RedisConnection> saveSpawnEntities(
             List<RedisEntity> spawnList,
             Long nextEntityId) {
@@ -144,7 +148,7 @@ public class LuaScriptService implements RedisService {
                 entity.setCellKey(cellKey);
 
                 Map<byte[], byte[]> map =
-                        geoMapper.entityToByteMap(entity);
+                        EntityMapper.entityToByteMap(entity);
 
                 byte[] entityKeyBytes =
                         ByteTypeConverter.stringToByte(entityKey);

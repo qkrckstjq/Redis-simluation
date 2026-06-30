@@ -290,11 +290,16 @@ public class BehaviorService {
             RedisEntity entity,
             Map<Long, RedisEntity> entityMap
     ) {
+        Long targetId = entity.getTargetId();
+        if(!entityMap.containsKey(targetId)) {
+            System.out.printf("%d일때 %d target", entity.getId(), entity.getTargetId());
+        }
         int curX = entity.getX();
         int curY = entity.getY();
         RedisEntity target = entityMap.get(entity.getTargetId());
         int targetX = target.getX();
         int targetY = target.getY();
+
 
         int dx = Integer.compare(targetX, curX);
         int dy = Integer.compare(targetY, curY);
@@ -361,6 +366,7 @@ public class BehaviorService {
 
     private void handleBlockedEntity(RedisEntity entity) {
         entity.increaseStamina();
+        entity.setSkipGeoUpdate(true);
 //        switch (entity.getState()) {
 //            case CHASE:
 //                entity.setTargetId(null);
@@ -372,5 +378,6 @@ public class BehaviorService {
 
     private void handleUnBlockedEntity(RedisEntity entity) {
         entity.decreaseStamina();
+        entity.setSkipGeoUpdate(false);
     }
 }

@@ -5,12 +5,9 @@ import com.example.world.entity.StateEnum;
 import com.example.world.entity.TypeEnum;
 import com.example.world.service.CollisionService;
 import com.example.world.service.EntityMapperImpl;
-import com.example.world.service.EntityService;
-import com.example.world.util.GeoUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.awt.print.Pageable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

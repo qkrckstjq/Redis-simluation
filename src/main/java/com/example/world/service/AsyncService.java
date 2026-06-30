@@ -4,6 +4,7 @@ import com.example.world.entity.EntitySnapshotDto;
 import com.example.world.entity.RedisEntity;
 import com.example.world.entity.Tick;
 import com.example.world.repository.RedisRepository;
+import com.example.world.service.inmemory.InMemoryRedisService;
 import com.example.world.stream.StreamService;
 import com.example.world.websocket.WebSocketMapper;
 import com.example.world.websocket.WebSocketService;
@@ -16,7 +17,8 @@ import java.util.concurrent.Executor;
 
 @Service
 public class AsyncService {
-    private final RedisService redisService;
+    private final RedisService entityClusterService;
+    private final RedisService inMemoryRedisService;
     private final StreamService streamService;
     private final EventMapper eventMapper;
     private final RedisRepository redisRepository;
@@ -28,7 +30,10 @@ public class AsyncService {
     private final Executor spawnExecutor;
 
     public AsyncService(
+            @Qualifier("entityClusterService")
             RedisService entityClusterService,
+            @Qualifier("inMemoryRedisService")
+            RedisService inMemoryRedisService,
             StreamService streamService,
             EventMapper eventMapper,
             RedisRepository redisRepository,
@@ -43,7 +48,8 @@ public class AsyncService {
             @Qualifier("spawnExecutor")
             Executor spawnExecutor
     ) {
-        this.redisService = entityClusterService;
+        this.entityClusterService = entityClusterService;
+        this.inMemoryRedisService = inMemoryRedisService;
         this.streamService = streamService;
         this.eventMapper = eventMapper;
         this.redisRepository = redisRepository;
@@ -99,7 +105,7 @@ public class AsyncService {
             long start = System.nanoTime();
 
             redisRepository.requestPipeLine(
-                    redisService.updateEntitiesPipe(entityList)
+                    entityClusterService.updateEntitiesPipe(entityList)
             );
 
             System.out.printf("[Async] Redis Update       : %d ms%n",
@@ -107,17 +113,42 @@ public class AsyncService {
         }, redisUpdateExecutor);
     }
 
-    public CompletableFuture<Void> spawnEntities(List<RedisEntity> spawnList) {
+    public CompletableFuture<Void> spawnEntities(List<RedisEntity> spawnList, Long nextEntityId) {
         return CompletableFuture.runAsync(() -> {
             long start = System.nanoTime();
-
-            Long nextEntityId = redisRepository.allocateIds(spawnList.size());
             redisRepository.requestPipeLine(
-                    redisService.saveSpawnEntities(spawnList, nextEntityId)
+                    entityClusterService.saveSpawnEntities(spawnList, nextEntityId)
             );
 
             System.out.printf("[Async] Spawn Entities     : %d ms%n",
                     (System.nanoTime() - start) / 1_000_000);
         }, spawnExecutor);
+    }
+
+    public CompletableFuture<Void> redisUpdateEntitiesInMemory(
+            List<RedisEntity> entities,
+            Long nextEntityId
+    ) {
+        return CompletableFuture.runAsync(() -> {
+            long start = System.nanoTime();
+
+            redisRepository.requestPipeLine(inMemoryRedisService.updateEntitiesPipe(entities, nextEntityId));
+
+            System.out.printf("[Async] Redis Update       : %d ms%n",
+                    (System.nanoTime() - start) / 1_000_000);
+        }, redisUpdateExecutor);
+    }
+
+    public CompletableFuture<Void> redisHashFlush(
+            List<RedisEntity> entities
+    ) {
+        return CompletableFuture.runAsync(() -> {
+            long start = System.nanoTime();
+
+            redisRepository.requestPipeLine(inMemoryRedisService.hashFlush(entities));
+
+            System.out.printf("[Async] Redis HashFlush    : %d ms%n",
+                    (System.nanoTime() - start) / 1_000_000);
+        }, redisUpdateExecutor);
     }
 }
