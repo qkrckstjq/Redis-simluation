@@ -8,16 +8,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class EntityEventScheduler {
     private final EntityService entityService;
     public static boolean RUN = false;
     public static boolean ASYNC = true;
-
-    public EntityEventScheduler(
-            EntityService entityService
-    ) {
-        this.entityService = entityService;
-    }
 
     @Scheduled(fixedRate = 100)
     public void tick() {
