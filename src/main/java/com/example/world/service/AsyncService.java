@@ -3,6 +3,9 @@ package com.example.world.service;
 import com.example.world.entity.EntitySnapshotDto;
 import com.example.world.entity.RedisEntity;
 import com.example.world.entity.Tick;
+import com.example.world.entity.log.PerformanceLog;
+import com.example.world.entity.log.PerformanceLogger;
+import com.example.world.entity.log.PerformanceMetric;
 import com.example.world.repository.RedisRepository;
 import com.example.world.service.inmemory.InMemoryRedisService;
 import com.example.world.stream.StreamService;
@@ -28,6 +31,8 @@ public class AsyncService {
     private final Executor websocketExecutor;
     private final Executor redisUpdateExecutor;
     private final Executor spawnExecutor;
+    private final PerformanceLog performanceLog;
+    private final PerformanceMetric metric;
 
     public AsyncService(
             @Qualifier("entityClusterService")
@@ -46,7 +51,8 @@ public class AsyncService {
             @Qualifier("redisUpdateExecutor")
             Executor redisUpdateExecutor,
             @Qualifier("spawnExecutor")
-            Executor spawnExecutor
+            Executor spawnExecutor,
+            PerformanceLog performanceLog
     ) {
         this.entityClusterService = entityClusterService;
         this.inMemoryRedisService = inMemoryRedisService;
@@ -59,6 +65,8 @@ public class AsyncService {
         this.websocketExecutor = websocketExecutor;
         this.redisUpdateExecutor = redisUpdateExecutor;
         this.spawnExecutor = spawnExecutor;
+        this.performanceLog = performanceLog;
+        this.metric = performanceLog.getMetric();
     }
 
     public CompletableFuture<Void> publish(List<RedisEntity> entityList) {
@@ -71,8 +79,7 @@ public class AsyncService {
                     )
             );
 
-            System.out.printf("[Async] Stream Publish     : %d ms%n",
-                    (System.nanoTime() - start) / 1_000_000);
+            metric.setStreamPublish(System.nanoTime() - start);
         }, streamExecutor);
     }
 
@@ -94,9 +101,7 @@ public class AsyncService {
             Tick tick = webSocketMapper.redisEntitiesToTick(snapshotDtoList);
 
             webSocketService.sendSnapShots(tick);
-
-            System.out.printf("[Async] WebSocket Send     : %d ms%n",
-                    (System.nanoTime() - start) / 1_000_000);
+            metric.setWebsocketSend(System.nanoTime() - start);
         }, websocketExecutor);
     }
 
@@ -108,8 +113,7 @@ public class AsyncService {
                     entityClusterService.updateEntitiesPipe(entityList)
             );
 
-            System.out.printf("[Async] Redis Update       : %d ms%n",
-                    (System.nanoTime() - start) / 1_000_000);
+            metric.setRedisUpdate(System.nanoTime() - start);
         }, redisUpdateExecutor);
     }
 
@@ -120,8 +124,7 @@ public class AsyncService {
                     entityClusterService.saveSpawnEntities(spawnList, nextEntityId)
             );
 
-            System.out.printf("[Async] Spawn Entities     : %d ms%n",
-                    (System.nanoTime() - start) / 1_000_000);
+            metric.setAddSpawnEntities(System.nanoTime() - start);
         }, spawnExecutor);
     }
 
@@ -134,8 +137,7 @@ public class AsyncService {
 
             redisRepository.requestPipeLine(inMemoryRedisService.updateEntitiesPipe(entities, nextEntityId));
 
-            System.out.printf("[Async] Redis Update       : %d ms%n",
-                    (System.nanoTime() - start) / 1_000_000);
+            metric.setRedisUpdate(System.nanoTime() - start);
         }, redisUpdateExecutor);
     }
 
