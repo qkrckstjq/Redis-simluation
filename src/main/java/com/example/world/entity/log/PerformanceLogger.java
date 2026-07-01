@@ -2,10 +2,11 @@ package com.example.world.entity.log;
 
 import org.springframework.stereotype.Service;
 
-@Service
-public class PerformanceLogger {
+public final class PerformanceLogger {
 
-    public void print(PerformanceLog log) {
+    private PerformanceLogger() {}
+
+    public static void print(PerformanceLog log) {
 
         PerformanceMetric metric = log.getMetric();
 
