@@ -1,15 +1,14 @@
 package com.example.world.entity.log;
 
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import org.springframework.stereotype.Component;
 
 @Getter
 @Setter
+@RequiredArgsConstructor
 public class PerformanceLog {
     private long tick;
-    private PerformanceMetric metric;
-
-    public PerformanceLog(PerformanceMetric performanceMetric) {
-        this.metric = performanceMetric;
-    }
+    private final PerformanceMetric metric;
 }

@@ -1,8 +1,7 @@
 package com.example.world.entity.log;
 
-import org.springframework.stereotype.Service;
-
 public final class PerformanceLogger {
+    private static final long SCALE = 1_000_000;
 
     private PerformanceLogger() {}
 
@@ -13,11 +12,11 @@ public final class PerformanceLogger {
         System.out.printf(
                 """
                 [1] Entity Read              : %d ms
-                [2] Nearby Search            : %d ms
-                [3] Mapping Nearby           : %d ms
-                [4] AI Decision              : %d ms
-                [5] Collision                : %d ms
-                [6] Move                     : %d ms
+                [2] skip Geo Entities        : %d ms
+                [3] Nearby Search            : %d ms
+                [4] Mapping Nearby           : %d ms
+                [5] AI Decision              : %d ms
+                [6] Move with Collision      : %d ms
                 [7] Add Spawn Entities       : %d ms
                 [8] Apply Move               : %d ms
 
@@ -29,28 +28,19 @@ public final class PerformanceLogger {
                 TOTAL                        : %d ms
 
                 """,
-                metric.getEntityRead(),
-                metric.getGeoSearch(),
-                metric.getMappingNearBy(),
-                metric.getAiDecision(),
-                metric.getCollision(),
-                metric.getMove(),
-                metric.getAddSpawnEntities(),
-                metric.getApplyMove(),
-
-                metric.getRedisUpdate(),
-                metric.getStreamPublish(),
-                metric.getWebsocketSend(),
-
-                Math.max(
-                        metric.getRedisUpdate(),
-                        Math.max(
-                                metric.getStreamPublish(),
-                                metric.getWebsocketSend()
-                        )
-                ),
-
-                metric.getTotal()
+                metric.getEntityRead() / SCALE,
+                metric.getMappingSkipGeo() / SCALE,
+                metric.getGeoSearch() / SCALE,
+                metric.getMappingNearBy() / SCALE,
+                metric.getAiDecision() / SCALE,
+                metric.getMoveWithCollision() / SCALE,
+                metric.getAddSpawnEntities() / SCALE,
+                metric.getApplyMove() / SCALE,
+                metric.getRedisUpdate() / SCALE,
+                metric.getStreamPublish() / SCALE,
+                metric.getWebsocketSend() / SCALE,
+                metric.getAsyncTotal() / SCALE,
+                metric.getTotal() / SCALE
         );
     }
 }
