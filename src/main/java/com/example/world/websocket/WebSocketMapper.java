@@ -5,6 +5,7 @@ import com.example.world.cluster.service.EntityClusterMapper;
 import com.example.world.entity.EntitySnapshotDto;
 import com.example.world.entity.RedisEntity;
 import com.example.world.entity.Tick;
+import com.example.world.entity.log.PerformanceMetric;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.geo.GeoResults;
 import org.springframework.data.redis.connection.RedisGeoCommands;
@@ -21,6 +22,7 @@ public class WebSocketMapper {
     private long tick = 1L;
     private static final String MOVE = "MOVE";
     private final EntityClusterMapper geoMapper;
+    private final PerformanceMetric metric;
 
     public EntitySnapshotDto redisEntityToSnapShotDto(RedisEntity entity) {
         return new EntitySnapshotDto(
@@ -50,7 +52,9 @@ public class WebSocketMapper {
         return new Tick(
                 MOVE,
                 tick++,
-                entities);
+                entities,
+                metric
+        );
     }
 
 
