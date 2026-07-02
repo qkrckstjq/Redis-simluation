@@ -172,18 +172,19 @@ public class BatchProcessor {
         List<Object> hGetAllEntities = redisRepository.responsePipeLine(redisService.getEntityIds(ids));
         List<RedisEntity> entityList = EntityMapper.objectsToRedisEntities(hGetAllEntities);
         Map<Long, RedisEntity> entityMap = entityMapper.entitiesToHashMap(entityList);
-        System.out.printf("[1] Entity Read         : %d ms%n",
-                (System.nanoTime() - checkpoint) / 1_000_000);
+        metric.setEntityRead(System.nanoTime() - checkpoint);
 
 
+        checkpoint = System.nanoTime();
         List<RedisEntity> noneTargetEntities = entityList.stream()
                 .filter(entity -> !redisService.skipGeoSearch(entity))
                 .toList();
+        metric.setMappingSkipGeo(System.nanoTime() - checkpoint);
+
 
         checkpoint = System.nanoTime();
         List<Object> geoResults = redisRepository.responsePipeLine(redisService.getNearByIds(noneTargetEntities, 10));
-        System.out.printf("[2] Nearby Search       : %d ms%n",
-                (System.nanoTime() - checkpoint) / 1_000_000);
+        metric.setGeoSearch(System.nanoTime() - checkpoint);
 
 
         long asyncStart = System.nanoTime();
@@ -192,20 +193,19 @@ public class BatchProcessor {
 
         checkpoint = System.nanoTime();
         Map<Long, List<RedisEntity>> nearEntities = redisService.geoSearchNearbyResultToIds(noneTargetEntities, geoResults, entityMap);
-        System.out.printf("[3] Mapping nearby      : %d ms%n",
-                (System.nanoTime() - checkpoint) / 1_000_000);
+        metric.setMappingNearBy(System.nanoTime() - checkpoint);
+
 
         checkpoint = System.nanoTime();
         aiDecisionService.decideState(entityList, nearEntities, entityMap);
-        System.out.printf("[4] AI Decision         : %d ms%n",
-                (System.nanoTime() - checkpoint) / 1_000_000);
+        metric.setAiDecision(System.nanoTime() - checkpoint);
 
 
         checkpoint = System.nanoTime();
         List<RedisEntity> spawnList = new ArrayList<>();
         List<NextMove> nextMoves = behaviorService.decideMoves(entityList, entityMap, nearEntities, spawnList);
-        System.out.printf("[5] Move Decision with collision : %d ms%n",
-                (System.nanoTime() - checkpoint) / 1_000_000);
+        metric.setApplyMove(System.nanoTime() - checkpoint);
+
 
         Long nextEntityId = redisRepository.allocateIds(spawnList.size());
         CompletableFuture<Void> spawnFuture = asyncService.spawnEntities(spawnList, nextEntityId);
@@ -213,8 +213,8 @@ public class BatchProcessor {
 
         checkpoint = System.nanoTime();
         behaviorService.moveWithCollision(nextMoves, null);
-        System.out.printf("[7] Apply Move          : %d ms%n",
-                (System.nanoTime() - checkpoint) / 1_000_000);
+        metric.setMoveWithCollision(System.nanoTime() - checkpoint);
+
 
         CompletableFuture<Void> redisUpdateFuture = asyncService.redisUpdateEntities(entityList);
 
@@ -225,11 +225,9 @@ public class BatchProcessor {
                 spawnFuture
         ).join();
 
-        System.out.printf("[Async] Total             : %d ms%n",
-                (System.nanoTime() - asyncStart) / 1_000_000);
-
-        System.out.printf("TOTAL                 : %d ms%n%n",
-                (System.nanoTime() - totalStart) / 1_000_000);
+        metric.setAsyncTotal(System.nanoTime() - asyncStart);
+        metric.setTotal(System.nanoTime() - totalStart);
+        PerformanceLogger.print(performanceLog);
     }
 
     public void processInMemoryAsync() {
