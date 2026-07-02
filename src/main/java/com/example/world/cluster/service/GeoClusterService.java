@@ -35,6 +35,10 @@ public class GeoClusterService {
                 int minCellY = (entity.getY() - range) / CELL_SIZE;
                 int maxCellY = (entity.getY() + range) / CELL_SIZE;
 
+                int cellCountX = maxCellX - minCellX + 1;
+                int cellCountY = maxCellY - minCellY + 1;
+                int limit = 6 / (cellCountX * cellCountY);
+
                 for (int cellX = minCellX; cellX <= maxCellX; cellX++) {
 
                     for (int cellY = minCellY; cellY <= maxCellY; cellY++) {
@@ -50,7 +54,7 @@ public class GeoClusterService {
                                 RedisGeoCommands.GeoSearchCommandArgs
                                         .newGeoSearchArgs()
                                         .sortAscending()
-                                        .limit(5)
+                                        .limit(limit)
                         );
                     }
                 }

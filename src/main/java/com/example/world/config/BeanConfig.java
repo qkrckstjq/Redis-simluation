@@ -2,6 +2,8 @@ package com.example.world.config;
 
 import com.example.world.cluster.service.EntityClusterMapper;
 import com.example.world.cluster.service.EntityClusterService;
+import com.example.world.entity.log.PerformanceLog;
+import com.example.world.entity.log.PerformanceMetric;
 import com.example.world.service.EntityMapper;
 import com.example.world.service.EntityService;
 import com.example.world.service.RedisEntityService;
@@ -38,4 +40,14 @@ public class BeanConfig {
 //    public EntityService entityService(RedisEntityService entityService) {
 //        return entityService;
 //    }
+
+    @Bean
+    public PerformanceMetric performanceMetric() {
+        return new PerformanceMetric();
+    }
+
+    @Bean
+    public PerformanceLog performanceLog(PerformanceMetric performanceMetric) {
+        return new PerformanceLog(performanceMetric);
+    }
 }

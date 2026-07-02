@@ -1,6 +1,8 @@
 package com.example.world.service.inmemory;
 
 import com.example.world.cluster.CellManager;
+import com.example.world.cluster.service.EntityClusterMapper;
+import com.example.world.cluster.service.GeoClusterService;
 import com.example.world.constants.RedisKeys;
 import com.example.world.entity.NextMove;
 import com.example.world.entity.RedisEntity;
@@ -25,10 +27,16 @@ import java.util.function.Consumer;
 public class InMemoryRedisService implements RedisService{
     private final CellManager cellManager;
     private final EntityManager entityManager;
+    private final GeoClusterService geoClusterService;
+    private final EntityClusterMapper entityClusterMapper;
 
     @Override
     public Consumer<RedisConnection> getEntityIds(List<String> ids) {
-        return null;
+        return connection -> {
+            for (String id : ids) {
+                connection.hashCommands().hGetAll(ByteTypeConverter.stringToByte(id));
+            }
+        };
     }
 
     public Consumer<RedisConnection> saveNewEntities(String type, Long nextId, int count) {
@@ -147,19 +155,20 @@ public class InMemoryRedisService implements RedisService{
         };
     }
 
-    @Override
     public Consumer<RedisConnection> getNearByIds(List<RedisEntity> entities, int range) {
-        return null;
+        return geoClusterService.getNearByIds(entities, range);
     }
 
-    @Override
-    public Map<Long, List<RedisEntity>> geoSearchNearbyResultToIds(List<RedisEntity> entities, List<Object> geoResults, Map<Long, RedisEntity> entityMap) {
-        return Map.of();
+    public Map<Long, List<RedisEntity>> geoSearchNearbyResultToIds(
+            List<RedisEntity> entities,
+            List<Object> geoResults,
+            Map<Long, RedisEntity> entityMap
+    ) {
+        return entityClusterMapper.geoSearchNearbyResultToIds(entities, geoResults, entityMap);
     }
 
-    @Override
     public Consumer<RedisConnection> getCollisionIds(List<NextMove> nextMoveList, double range) {
-        return null;
+        return geoClusterService.getCollisionIds(nextMoveList, range);
     }
 
     @Override
