@@ -129,13 +129,12 @@ public class AsyncService {
     }
 
     public CompletableFuture<Void> redisUpdateEntitiesInMemory(
-            List<RedisEntity> entities,
-            Long nextEntityId
+            List<RedisEntity> entities
     ) {
         return CompletableFuture.runAsync(() -> {
             long start = System.nanoTime();
 
-            redisRepository.requestPipeLine(inMemoryRedisService.updateEntitiesPipe(entities, nextEntityId));
+            redisRepository.requestPipeLine(inMemoryRedisService.updateEntitiesPipe(entities));
 
             metric.setRedisUpdate(System.nanoTime() - start);
         }, redisUpdateExecutor);
