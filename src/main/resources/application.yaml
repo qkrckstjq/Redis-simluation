@@ -12,3 +12,17 @@ spring:
           - "localhost:6381"
       password: "qwer1234"
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus,health,metrics
+
+  endpoint:
+    health:
+      show-details: always
+
+  prometheus:
+    metrics:
+      export:
+        enabled: true
