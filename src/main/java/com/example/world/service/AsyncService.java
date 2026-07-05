@@ -11,6 +11,7 @@ import com.example.world.service.inmemory.InMemoryRedisService;
 import com.example.world.stream.StreamService;
 import com.example.world.websocket.WebSocketMapper;
 import com.example.world.websocket.WebSocketService;
+import io.micrometer.core.annotation.Timed;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
@@ -69,6 +70,7 @@ public class AsyncService {
         this.metric = performanceLog.getMetric();
     }
 
+    @Timed(value = "simulation.stream.flush")
     public CompletableFuture<Void> publish(List<RedisEntity> entityList) {
         return CompletableFuture.runAsync(() -> {
             long start = System.nanoTime();
@@ -83,6 +85,7 @@ public class AsyncService {
         }, streamExecutor);
     }
 
+    @Timed(value = "simulation.websocket.flush")
     public CompletableFuture<Void> mappingAndSend(
             List<RedisEntity> entities,
             List<Object> geoResults,
@@ -105,6 +108,7 @@ public class AsyncService {
         }, websocketExecutor);
     }
 
+    @Timed(value = "simulation.redis.update")
     public CompletableFuture<Void> redisUpdateEntities(List<RedisEntity> entityList) {
         return CompletableFuture.runAsync(() -> {
             long start = System.nanoTime();
@@ -117,6 +121,7 @@ public class AsyncService {
         }, redisUpdateExecutor);
     }
 
+    @Timed(value = "simulation.entity.spawn")
     public CompletableFuture<Void> spawnEntities(List<RedisEntity> spawnList, Long nextEntityId) {
         return CompletableFuture.runAsync(() -> {
             long start = System.nanoTime();
@@ -128,6 +133,7 @@ public class AsyncService {
         }, spawnExecutor);
     }
 
+    @Timed(value = "simulation.inmemory.update")
     public CompletableFuture<Void> redisUpdateEntitiesInMemory(
             List<RedisEntity> entities
     ) {
@@ -140,6 +146,7 @@ public class AsyncService {
         }, redisUpdateExecutor);
     }
 
+    @Timed(value = "simulation.inmemory.hash.flush")
     public CompletableFuture<Void> redisHashFlush(
             List<RedisEntity> entities
     ) {

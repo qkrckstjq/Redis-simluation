@@ -10,6 +10,9 @@ import com.example.world.service.RedisService;
 import com.example.world.service.ai.AiDecisionService;
 import com.example.world.service.inmemory.EntityManager;
 import com.example.world.websocket.WebSocketMapper;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.cumulative.CumulativeTimer;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -44,17 +47,20 @@ public class InMemoryProcess implements Process {
 
 
     @Override
+    @Timed("simulation.entity.read")
     public void setEntities(List<String> ids) {
         entityManager.initEntityList();
         if(webSocketMapper.getTick() % 10 == 0) asyncService.redisHashFlush(entityManager.getEntityList());
     }
 
     @Override
+    @Timed(value = "simulation.entity.mapping")
     public void setEntitiesMap() {
 //        entityManager.getEntityMap();
     }
 
     @Override
+    @Timed(value = "simulation.entity.skip_geo_search")
     public void skipGeoSearchEntities() {
         noneTargetEntities = entityManager.getEntityList().stream()
                 .filter(entity -> !redisService.skipGeoSearch(entity))
@@ -62,21 +68,25 @@ public class InMemoryProcess implements Process {
     }
 
     @Override
+    @Timed(value = "simulation.geo.search")
     public void getGeoSearch() {
         geoResults = redisRepository.responsePipeLine(redisService.getNearByIds(noneTargetEntities, 10));
     }
 
     @Override
+    @Timed(value = "simulation.geo.mapping")
     public void mappingNearByEntities() {
         nearEntities = redisService.geoSearchNearbyResultToIds(noneTargetEntities, geoResults, entityManager.getEntityMap());
     }
 
     @Override
+    @Timed(value = "simulation.ai.decision")
     public void aiDecision() {
         aiDecisionService.decideState(entityManager.getEntityList(), nearEntities, entityManager.getEntityMap());
     }
 
     @Override
+    @Timed(value = "simulation.move.next")
     public void setNextMove() {
         nextMoves = behaviorService.decideMoves(
                 entityManager.getEntityList(),
@@ -109,12 +119,14 @@ public class InMemoryProcess implements Process {
     }
 
     @Override
+    @Timed(value = "simulation.collision.move")
     public void moveWithCollision() {
         spawnEntities = new ArrayList<>();
         behaviorService.moveWithCollision(nextMoves, null);
     }
 
     @Override
+    @Timed(value = "simulation.process.end")
     public void endProcess() {
         CompletableFuture.allOf(
 //                websocketFuture,
