@@ -58,20 +58,20 @@ public class EntityEventConsumer implements InitializingBean, DisposableBean,
     @Override
     public void onMessage(MapRecord<String, String, String> message) {
 
-        try {
-
-            SimulationEvent event = toSimulationEvent(message.getValue());
-
-            historyService.save(event);
-
-            redisTemplate.opsForStream().acknowledge(
-                    RedisKeys.GROUP_NAME,
-                    message
-            );
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        try {
+//
+//            SimulationEvent event = toSimulationEvent(message.getValue());
+//
+//            historyService.save(event);
+//
+//            redisTemplate.opsForStream().acknowledge(
+//                    RedisKeys.GROUP_NAME,
+//                    message
+//            );
+//
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
     }
 
     @Override
@@ -103,19 +103,19 @@ public class EntityEventConsumer implements InitializingBean, DisposableBean,
         }
     }
 
-    private SimulationEvent toSimulationEvent(Map<String, String> map) {
-
-        Map<String, String> payload = new HashMap<>(map);
-
-        payload.remove("state");
-        payload.remove("tick");
-        payload.remove("entityId");
-
-        return new SimulationEvent(
-                StateEnum.valueOf(map.get("state")),
-                Long.parseLong(map.get("tick")),
-                Long.parseLong(map.get("entityId")),
-                payload
-        );
-    }
+//    private SimulationEvent toSimulationEvent(Map<String, String> map) {
+//
+//        Map<String, String> payload = new HashMap<>(map);
+//
+//        payload.remove("state");
+//        payload.remove("tick");
+//        payload.remove("entityId");
+//
+//        return new SimulationEvent(
+//                StateEnum.valueOf(map.get("state")),
+//                Long.parseLong(map.get("tick")),
+//                Long.parseLong(map.get("entityId")),
+//                payload
+//        );
+//    }
 }

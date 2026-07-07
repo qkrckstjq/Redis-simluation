@@ -16,16 +16,13 @@ import com.example.world.stream.StreamService;
 import com.example.world.websocket.WebSocketMapper;
 import com.example.world.websocket.WebSocketService;
 import io.micrometer.core.annotation.Timed;
-import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 
 @Service
 public class BatchProcessor {
@@ -87,8 +84,10 @@ public class BatchProcessor {
         long checkpoint = totalStart;
 
         List<Object> hGetAllEntities = redisRepository.responsePipeLine(redisService.getEntityIds(ids));
-        List<RedisEntity> entityList = EntityMapper.objectsToRedisEntities(hGetAllEntities);
-        Map<Long, RedisEntity> entityMap = entityMapper.entitiesToHashMap(entityList);
+        entityManager.setEntityList(EntityMapper.objectsToRedisEntities(hGetAllEntities));
+        List<RedisEntity> entityList = entityManager.getEntityList();
+        entityManager.entityListToMap();
+        Map<Long, RedisEntity> entityMap = entityManager.getEntityMap();
         System.out.printf("[1] Entity Read         : %d ms%n",
                 (System.nanoTime() - checkpoint) / 1_000_000);
 
@@ -198,7 +197,7 @@ public class BatchProcessor {
 
         long asyncStart = System.nanoTime();
         CompletableFuture<Void> websocketFuture = asyncService.mappingAndSend(entityList, geoResults, noneTargetEntities);
-        CompletableFuture<Void> streamFuture = asyncService.publish(entityList);
+        CompletableFuture<Void> streamFuture = asyncService.addHistory(entityList);
 
         checkpoint = System.nanoTime();
         Map<Long, List<RedisEntity>> nearEntities = redisService.geoSearchNearbyResultToIds(noneTargetEntities, geoResults, entityMap);
@@ -263,7 +262,6 @@ public class BatchProcessor {
 
         long asyncStart = System.nanoTime();
         process.flushWebSocketEntities();
-        process.flushStreamEntities();
 
 
         checkpoint = System.nanoTime();
@@ -278,6 +276,7 @@ public class BatchProcessor {
 
         checkpoint = System.nanoTime();
         process.setNextMove();
+        process.flushStreamEntities();
         metric.setMoveWithCollision(System.nanoTime() - checkpoint);
 
 

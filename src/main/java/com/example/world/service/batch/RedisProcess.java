@@ -89,7 +89,7 @@ public class RedisProcess implements Process{
 
     @Override
     public void flushStreamEntities() {
-        flushStreamEntities = asyncService.publish(entities);
+        flushStreamEntities = asyncService.addHistory(entities);
     }
 
     @Override

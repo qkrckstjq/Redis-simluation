@@ -2,12 +2,12 @@ package com.example.world.service;
 
 import com.example.world.entity.EntitySnapshotDto;
 import com.example.world.entity.RedisEntity;
+import com.example.world.entity.SimulationEvent;
 import com.example.world.entity.Tick;
 import com.example.world.entity.log.PerformanceLog;
-import com.example.world.entity.log.PerformanceLogger;
 import com.example.world.entity.log.PerformanceMetric;
 import com.example.world.repository.RedisRepository;
-import com.example.world.service.inmemory.InMemoryRedisService;
+import com.example.world.stream.HistoryService;
 import com.example.world.stream.StreamService;
 import com.example.world.websocket.WebSocketMapper;
 import com.example.world.websocket.WebSocketService;
@@ -34,6 +34,7 @@ public class AsyncService {
     private final Executor spawnExecutor;
     private final PerformanceLog performanceLog;
     private final PerformanceMetric metric;
+    private final HistoryService historyService;
 
     public AsyncService(
             @Qualifier("entityClusterService")
@@ -53,7 +54,8 @@ public class AsyncService {
             Executor redisUpdateExecutor,
             @Qualifier("spawnExecutor")
             Executor spawnExecutor,
-            PerformanceLog performanceLog
+            PerformanceLog performanceLog,
+            HistoryService historyService
     ) {
         this.entityClusterService = entityClusterService;
         this.inMemoryRedisService = inMemoryRedisService;
@@ -68,17 +70,17 @@ public class AsyncService {
         this.spawnExecutor = spawnExecutor;
         this.performanceLog = performanceLog;
         this.metric = performanceLog.getMetric();
+        this.historyService = historyService;
     }
 
     @Timed(value = "simulation.stream.flush")
-    public CompletableFuture<Void> publish(List<RedisEntity> entityList) {
+    public CompletableFuture<Void> addHistory(List<RedisEntity> entityList) {
         return CompletableFuture.runAsync(() -> {
             long start = System.nanoTime();
-
+            List<SimulationEvent> eventList = eventMapper.entitiesToEvents(entityList);
+            System.out.println("history event size : " + eventList.size());
             redisRepository.requestPipeLine(
-                    streamService.publish(
-                            eventMapper.entitiesToEvents(entityList)
-                    )
+                    historyService.addHistoryEntities(eventList)
             );
 
             metric.setStreamPublish(System.nanoTime() - start);

@@ -1,6 +1,5 @@
 package com.example.world.service.batch;
 
-import com.example.world.entity.NextMove;
 import com.example.world.entity.RedisEntity;
 import com.example.world.repository.RedisRepository;
 import com.example.world.service.AsyncService;
@@ -11,16 +10,11 @@ import com.example.world.service.ai.AiDecisionService;
 import com.example.world.service.inmemory.EntityManager;
 import com.example.world.websocket.WebSocketMapper;
 import io.micrometer.core.annotation.Timed;
-import io.micrometer.core.instrument.Timer;
-import io.micrometer.core.instrument.cumulative.CumulativeTimer;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -44,7 +38,7 @@ public class InMemoryProcess implements Process {
     @Override
     @Timed("simulation.entity.read")
     public void setEntities(List<String> ids) {
-        entityManager.initEntityList();
+        entityManager.initEntitiesField();
         if(webSocketMapper.getTick() % 10 == 0) asyncService.redisHashFlush(entityManager.getEntityList());
     }
 
@@ -125,7 +119,7 @@ public class InMemoryProcess implements Process {
 
     @Override
     public void flushStreamEntities() {
-        flushStreamEntities = asyncService.publish(entityManager.getEntityList());
+        flushStreamEntities = asyncService.addHistory(entityManager.getHistoryEntities());
     }
 
     @Override
@@ -140,7 +134,6 @@ public class InMemoryProcess implements Process {
     @Override
     @Timed(value = "simulation.collision.move")
     public void moveWithCollision() {
-        entityManager.initSpawnEntities();
         behaviorService.moveWithCollision(
                 entityManager.getNextMoves(),
                 null
