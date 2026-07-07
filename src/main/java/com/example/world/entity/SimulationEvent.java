@@ -8,19 +8,21 @@ import java.util.Map;
 @Getter
 @NoArgsConstructor
 public class SimulationEvent {
+    private long tick;
 
     private StateEnum state;
 
-    private long tick;
-
     private long entityId;
 
-    private Map<String, String> payload;
+    private long targetId;
 
-    public SimulationEvent(StateEnum state, Long curTick, long entityId, Map<String, String> payLoad) {
-        this.state = state;
+    private int age;
+
+    public SimulationEvent(StateEnum state, Long curTick, long entityId, long targetId, int age) {
         this.tick = curTick;
+        this.state = state;
         this.entityId = entityId;
-        this.payload = payLoad;
+        this.targetId = targetId;
+        this.age = age;
     }
 }
