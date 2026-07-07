@@ -37,11 +37,14 @@ public class StreamService {
                         ByteTypeConverter.stringToByte(String.valueOf(event.getEntityId()))
                 );
 
-                event.getPayload().forEach((k, v) ->
-                        body.put(
-                                ByteTypeConverter.stringToByte(k),
-                                ByteTypeConverter.stringToByte(v)
-                        )
+                body.put(
+                        ByteTypeConverter.stringToByte("targetId"),
+                        ByteTypeConverter.stringToByte(String.valueOf(event.getTargetId()))
+                );
+
+                body.put(
+                        ByteTypeConverter.stringToByte("age"),
+                        ByteTypeConverter.stringToByte(String.valueOf(event.getAge()))
                 );
 
                 connection.streamCommands().xAdd(
