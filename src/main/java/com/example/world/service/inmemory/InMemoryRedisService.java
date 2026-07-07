@@ -99,14 +99,6 @@ public class InMemoryRedisService implements RedisService{
 
     @Override
     public Consumer<RedisConnection> updateEntitiesPipe(List<RedisEntity> entities) {
-        return null;
-    }
-
-    @Override
-    public Consumer<RedisConnection> updateEntitiesPipe(
-            List<RedisEntity> entities,
-            Long nextEntityId
-    ) {
         return connection -> {
             for (RedisEntity entity : entities) {
                 String prevCellKey = entity.getCellKey();
@@ -130,6 +122,7 @@ public class InMemoryRedisService implements RedisService{
                             entityByteKey
                     );
                     entityManager.removeEntity(entity);
+                    continue;
                 }
 
                 if(!entity.checkCellKey(nextCellKey)) {
@@ -140,19 +133,19 @@ public class InMemoryRedisService implements RedisService{
                     Map<byte[], byte[]> map = EntityMapper.entityToByteMap(entity);
                     connection.hashCommands().hMSet(nextEntityByteKey, map);
                     entity.setCellKey(nextCellKey);
+                    connection.setCommands().sAdd(RedisKeys.WORLD_BYTE, nextEntityByteKey);
                 }
-
 
                 if(!entity.isSkipGeoUpdate()) {
                     connection.geoCommands().geoAdd(nextCellByteKey, point, nextEntityByteKey);
                 }
-
-                connection.setCommands().sAdd(
-                        RedisKeys.WORLD_BYTE,
-                        nextEntityByteKey
-                );
             }
         };
+    }
+
+    @Override
+    public Consumer<RedisConnection> updateEntitiesPipe(List<RedisEntity> entities, Long nextEntityId) {
+        return null;
     }
 
     public Consumer<RedisConnection> getNearByIds(List<RedisEntity> entities, int range) {
