@@ -9,7 +9,6 @@ import com.example.world.service.RedisService;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -61,13 +60,18 @@ public class EntityManager {
         }
     }
 
-    public void initEntityList() {
+    public void initEntitiesField() {
         entityList = new ArrayList<>();
         entityList.addAll(entityMap.values());
+        spawnEntities = new ArrayList<>();
+        historyEntities = new ArrayList<>();
     }
 
-    public void initSpawnEntities() {
-        spawnEntities = new ArrayList<>();
+    public void entityListToMap() {
+        for(RedisEntity entity : entityList) {
+            long entityId = entity.getId();
+            entityMap.put(entityId, entity);
+        }
     }
 
     public void addEntity(RedisEntity entity) {
@@ -83,5 +87,9 @@ public class EntityManager {
 
     public void removeEntity(RedisEntity entity) {
         entityMap.remove(entity.getId());
+    }
+
+    public void addHistoryEntity(RedisEntity entity) {
+        historyEntities.add(entity);
     }
 }
