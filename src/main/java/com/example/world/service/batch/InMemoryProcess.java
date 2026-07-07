@@ -35,11 +35,6 @@ public class InMemoryProcess implements Process {
     private final AsyncService asyncService;
     private final EntityManager entityManager;
     private final WebSocketMapper webSocketMapper;
-    private List<RedisEntity> spawnEntities = new ArrayList<>();
-    private List<RedisEntity> noneTargetEntities = new ArrayList<>();
-    private List<Object> geoResults = new ArrayList<>();
-    private Map<Long, List<RedisEntity>> nearEntities = new HashMap<>();
-    private List<NextMove> nextMoves = new ArrayList<>();
     private CompletableFuture<Void> saveSpawnEntities;
     private CompletableFuture<Void> saveUpdateEntities;
     private CompletableFuture<Void> flushStreamEntities;
@@ -62,42 +57,62 @@ public class InMemoryProcess implements Process {
     @Override
     @Timed(value = "simulation.entity.skip_geo_search")
     public void skipGeoSearchEntities() {
-        noneTargetEntities = entityManager.getEntityList().stream()
+        entityManager.setNoneTargetEntities(
+                entityManager.getEntityList().stream()
                 .filter(entity -> !redisService.skipGeoSearch(entity))
-                .toList();
+                .toList());
     }
 
     @Override
     @Timed(value = "simulation.geo.search")
     public void getGeoSearch() {
-        geoResults = redisRepository.responsePipeLine(redisService.getNearByIds(noneTargetEntities, 10));
+        entityManager.setGeoResults(
+                redisRepository.responsePipeLine(
+                        redisService.getNearByIds(
+                                entityManager.getNoneTargetEntities(), 10
+                        )
+                )
+        );
     }
 
     @Override
     @Timed(value = "simulation.geo.mapping")
     public void mappingNearByEntities() {
-        nearEntities = redisService.geoSearchNearbyResultToIds(noneTargetEntities, geoResults, entityManager.getEntityMap());
+        entityManager.setNearEntities(
+                redisService.geoSearchNearbyResultToIds(
+                        entityManager.getNoneTargetEntities(),
+                        entityManager.getGeoResults(),
+                        entityManager.getEntityMap()
+                )
+        );
     }
 
     @Override
     @Timed(value = "simulation.ai.decision")
     public void aiDecision() {
-        aiDecisionService.decideState(entityManager.getEntityList(), nearEntities, entityManager.getEntityMap());
+        aiDecisionService.decideState(
+                entityManager.getEntityList(),
+                entityManager.getNearEntities(),
+                entityManager.getEntityMap()
+        );
     }
 
     @Override
     @Timed(value = "simulation.move.next")
     public void setNextMove() {
-        nextMoves = behaviorService.decideMoves(
-                entityManager.getEntityList(),
-                entityManager.getEntityMap(),
-                nearEntities,
-                spawnEntities
+        entityManager.setNextMoves(
+                behaviorService.decideMoves(
+                        entityManager.getEntityList(),
+                        entityManager.getEntityMap(),
+                        entityManager.getNearEntities(),
+                        entityManager.getSpawnEntities()
+                )
         );
     }
 
     @Override
     public void saveSpawnEntities() {
+        List<RedisEntity> spawnEntities = entityManager.getSpawnEntities();
         Long nextEntityId = redisRepository.allocateIds(spawnEntities.size());
         saveSpawnEntities = asyncService.spawnEntities(spawnEntities, nextEntityId);
         entityManager.addAllEntities(spawnEntities, nextEntityId);
@@ -115,14 +130,21 @@ public class InMemoryProcess implements Process {
 
     @Override
     public void flushWebSocketEntities() {
-        flushWebsocketEntities = asyncService.mappingAndSend(entityManager.getEntityList(), geoResults, noneTargetEntities);
+        flushWebsocketEntities = asyncService.mappingAndSend(
+                entityManager.getEntityList(),
+                entityManager.getGeoResults(),
+                entityManager.getNoneTargetEntities()
+        );
     }
 
     @Override
     @Timed(value = "simulation.collision.move")
     public void moveWithCollision() {
-        spawnEntities = new ArrayList<>();
-        behaviorService.moveWithCollision(nextMoves, null);
+        entityManager.initSpawnEntities();
+        behaviorService.moveWithCollision(
+                entityManager.getNextMoves(),
+                null
+        );
     }
 
     @Override
