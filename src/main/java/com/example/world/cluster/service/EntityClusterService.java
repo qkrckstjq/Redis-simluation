@@ -114,6 +114,7 @@ public class EntityClusterService implements RedisService {
                 if(!entity.isSkipGeoUpdate()) {
                     connection.geoCommands().geoAdd(nextCellByteKey, point, nextEntityByteKey);
                 }
+
                 connection.hashCommands().hMSet(nextEntityByteKey, map);
                 connection.setCommands().sAdd(
                         RedisKeys.WORLD_BYTE,
