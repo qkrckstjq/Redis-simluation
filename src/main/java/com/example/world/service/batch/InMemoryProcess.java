@@ -31,6 +31,7 @@ public class InMemoryProcess implements Process {
     private final WebSocketMapper webSocketMapper;
     private CompletableFuture<Void> saveSpawnEntities;
     private CompletableFuture<Void> saveUpdateEntities;
+    private CompletableFuture<Void> saveHistoryEntities;
     private CompletableFuture<Void> flushStreamEntities;
     private CompletableFuture<Void> flushWebsocketEntities;
 
@@ -118,8 +119,13 @@ public class InMemoryProcess implements Process {
     }
 
     @Override
+    public void saveHistoryEntities() {
+        saveHistoryEntities = asyncService.addHistory(entityManager.getHistoryEntities());
+    }
+
+    @Override
     public void flushStreamEntities() {
-        flushStreamEntities = asyncService.addHistory(entityManager.getHistoryEntities());
+        flushStreamEntities = asyncService.streamPublish(entityManager.getStreamEntities());
     }
 
     @Override

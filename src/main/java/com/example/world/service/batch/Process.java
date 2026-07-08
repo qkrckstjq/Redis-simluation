@@ -1,13 +1,8 @@
 package com.example.world.service.batch;
 
-import com.example.world.entity.NextMove;
-import com.example.world.entity.RedisEntity;
 import io.micrometer.core.annotation.Timed;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 public interface Process {
     @Timed(value = "simulation.entity.read")
@@ -33,6 +28,7 @@ public interface Process {
 
     public void saveSpawnEntities();
     public void saveUpdateEntities();
+    public void saveHistoryEntities();
     public void flushStreamEntities();
     public void flushWebSocketEntities();
 

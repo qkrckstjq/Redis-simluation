@@ -88,8 +88,13 @@ public class RedisProcess implements Process{
     }
 
     @Override
-    public void flushStreamEntities() {
+    public void saveHistoryEntities() {
         flushStreamEntities = asyncService.addHistory(entities);
+    }
+
+    @Override
+    public void flushStreamEntities() {
+
     }
 
     @Override
