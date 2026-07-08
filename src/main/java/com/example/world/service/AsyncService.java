@@ -29,12 +29,14 @@ public class AsyncService {
     private final WebSocketMapper webSocketMapper;
     private final WebSocketService webSocketService;
     private final Executor streamExecutor;
+    private final Executor historyExecutor;
     private final Executor websocketExecutor;
     private final Executor redisUpdateExecutor;
     private final Executor spawnExecutor;
     private final PerformanceLog performanceLog;
     private final PerformanceMetric metric;
     private final HistoryService historyService;
+    private final TickManager tickManager;
 
     public AsyncService(
             @Qualifier("entityClusterService")
@@ -48,6 +50,8 @@ public class AsyncService {
             WebSocketService webSocketService,
             @Qualifier("streamExecutor")
             Executor streamExecutor,
+            @Qualifier("historyExecutor")
+            Executor historyExecutor,
             @Qualifier("webSocketExecutor")
             Executor websocketExecutor,
             @Qualifier("redisUpdateExecutor")
@@ -55,7 +59,8 @@ public class AsyncService {
             @Qualifier("spawnExecutor")
             Executor spawnExecutor,
             PerformanceLog performanceLog,
-            HistoryService historyService
+            HistoryService historyService,
+            TickManager tickManager
     ) {
         this.entityClusterService = entityClusterService;
         this.inMemoryRedisService = inMemoryRedisService;
@@ -65,12 +70,14 @@ public class AsyncService {
         this.webSocketMapper = webSocketMapper;
         this.webSocketService = webSocketService;
         this.streamExecutor = streamExecutor;
+        this.historyExecutor = historyExecutor;
         this.websocketExecutor = websocketExecutor;
         this.redisUpdateExecutor = redisUpdateExecutor;
         this.spawnExecutor = spawnExecutor;
         this.performanceLog = performanceLog;
         this.metric = performanceLog.getMetric();
         this.historyService = historyService;
+        this.tickManager = tickManager;
     }
 
     @Timed(value = "simulation.entity.history")
@@ -84,7 +91,7 @@ public class AsyncService {
             );
 
             metric.setSaveHistory(System.nanoTime() - start);
-        }, streamExecutor);
+        }, historyExecutor);
     }
 
     @Timed(value = "simulation.stream.flush")
@@ -174,5 +181,12 @@ public class AsyncService {
             System.out.printf("[Async] Redis HashFlush    : %d ms%n",
                     (System.nanoTime() - start) / 1_000_000);
         }, redisUpdateExecutor);
+    }
+
+    @Timed(value = "simulation.tick.update")
+    public void updateTick() {
+        CompletableFuture.runAsync(() -> {
+            redisRepository.setTick(String.valueOf(tickManager.currentTick()));
+        });
     }
 }
