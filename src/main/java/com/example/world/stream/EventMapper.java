@@ -8,12 +8,9 @@ import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static com.example.world.entity.StateEnum.*;
 
 @Service
 @RequiredArgsConstructor
@@ -21,16 +18,9 @@ public class EventMapper {
     private final WebSocketMapper webSocketMapper;
     private final ObjectMapper objectMapper;
 
-    public List<SimulationEvent> entitiesToEvents(List<RedisEntity> entityList) {
-        Long curTick = webSocketMapper.getTick();
+    public List<HistoryEvent> entitiesToEvents(List<RedisEntity> entityList) {
         return entityList.stream()
-                .map(entity -> new SimulationEvent(
-                        entity.getState(),
-                        curTick,
-                        entity.getId(),
-                        entity.getTargetId() == null ? 0 : entity.getTargetId(),
-                        entity.getAge()
-                ))
+                .map(this::entityToHistoryEvent)
                 .toList();
     }
 
@@ -56,8 +46,8 @@ public class EventMapper {
         return new EntityHistoryDto(state, targetId, x, y, tick);
     }
 
-    public SimulationEvent stringToSimulationEventDto(String value) {
-        return objectMapper.readValue(value, SimulationEvent.class);
+    public HistoryEvent stringToSimulationEventDto(String value) {
+        return objectMapper.readValue(value, HistoryEvent.class);
     }
 
     private Map<String, String> entityToMap(RedisEntity entity, StateEnum state) {
@@ -69,7 +59,7 @@ public class EventMapper {
         return result;
     }
 
-    public Map<byte[], byte[]> eventToMap(SimulationEvent event) {
+    public Map<byte[], byte[]> eventToMap(HistoryEvent event) {
         Map<byte[], byte[]> result = new HashMap<>();
 
         result.put(
@@ -98,5 +88,19 @@ public class EventMapper {
         );
 
         return result;
+    }
+
+    public HistoryEvent entityToHistoryEvent(RedisEntity entity) {
+        return new HistoryEvent(
+                entity.getState(),
+                entity.getId(),
+                webSocketMapper.getTick(),
+                entity.getTargetId() == null ? 0 : entity.getTargetId(),
+                entity.getAge()
+        );
+    }
+
+    public StreamEvent entityToStreamEvent() {
+
     }
 }
