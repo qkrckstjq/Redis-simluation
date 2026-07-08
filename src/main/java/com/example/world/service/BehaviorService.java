@@ -385,11 +385,13 @@ public class BehaviorService {
     private void handleSuccessHuntEntity(RedisEntity entity) {
         entity.successHunt();
         entityManager.addHistoryEntity(entity);
+        entityManager.addStreamEntity(entity);
     }
 
     private void handleSuccessSpawnEntity(RedisEntity entity) {
         entity.afterBreed();
         entityManager.addHistoryEntity(entity);
+        entityManager.addStreamEntity(entity);
     }
 
     private void handleSuccessBreedEntity(RedisEntity entity) {
