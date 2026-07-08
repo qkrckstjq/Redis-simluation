@@ -8,24 +8,23 @@ import java.util.Map;
 @Getter
 @Setter
 public class EntityHistoryDto {
+    private int tick;
     private StateEnum state;
-    private Long targetId;
-    private Integer x;
-    private Integer y;
-    private Long tick;
-
+    private long targetId;
+    private long entityId;
+    private int age;
 
     public EntityHistoryDto(
+            int tick,
             StateEnum state,
-            Long targetId,
-            Integer x,
-            Integer y,
-            Long tick
+            long targetId,
+            long entityId,
+            int age
     ) {
+        this.tick = tick;
         this.state = state;
         this.targetId = targetId;
-        this.x = x;
-        this.y = y;
-        this.tick = tick;
+        this.entityId = entityId;
+        this.age = age;
     }
 }
