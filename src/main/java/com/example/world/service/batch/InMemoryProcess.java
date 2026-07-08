@@ -2,10 +2,7 @@ package com.example.world.service.batch;
 
 import com.example.world.entity.RedisEntity;
 import com.example.world.repository.RedisRepository;
-import com.example.world.service.AsyncService;
-import com.example.world.service.BehaviorService;
-import com.example.world.service.EntityMapper;
-import com.example.world.service.RedisService;
+import com.example.world.service.*;
 import com.example.world.service.ai.AiDecisionService;
 import com.example.world.service.inmemory.EntityManager;
 import com.example.world.websocket.WebSocketMapper;
@@ -29,6 +26,7 @@ public class InMemoryProcess implements Process {
     private final AsyncService asyncService;
     private final EntityManager entityManager;
     private final WebSocketMapper webSocketMapper;
+    private final TickManager tickManager;
     private CompletableFuture<Void> saveSpawnEntities;
     private CompletableFuture<Void> saveUpdateEntities;
     private CompletableFuture<Void> saveHistoryEntities;
@@ -40,7 +38,10 @@ public class InMemoryProcess implements Process {
     @Timed("simulation.entity.read")
     public void setEntities(List<String> ids) {
         entityManager.initEntitiesField();
-        if(webSocketMapper.getTick() % 10 == 0) asyncService.redisHashFlush(entityManager.getEntityList());
+        if(tickManager.currentTick() % 10 == 0) {
+            asyncService.redisHashFlush(entityManager.getEntityList());
+            asyncService.updateTick();
+        }
     }
 
     @Override
