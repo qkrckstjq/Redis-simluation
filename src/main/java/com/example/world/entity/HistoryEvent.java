@@ -16,10 +16,16 @@ public class HistoryEvent {
 
     private int age;
 
-    public HistoryEvent(StateEnum state, Long curTick, long entityId, long targetId, int age) {
-        this.tick = curTick;
+    public HistoryEvent(
+            StateEnum state,
+            long entityId,
+            long curTick,
+            long targetId,
+            int age
+    ) {
         this.state = state;
         this.entityId = entityId;
+        this.tick = curTick;
         this.targetId = targetId;
         this.age = age;
     }

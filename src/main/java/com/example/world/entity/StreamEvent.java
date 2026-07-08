@@ -18,14 +18,14 @@ public class StreamEvent {
 
     public StreamEvent(
             StateEnum state,
-            Long curTick,
             long entityId,
+            long curTick,
             long targetId,
             int age
     ) {
-        this.tick = curTick;
         this.state = state;
         this.entityId = entityId;
+        this.tick = curTick;
         this.targetId = targetId;
         this.age = age;
     }
