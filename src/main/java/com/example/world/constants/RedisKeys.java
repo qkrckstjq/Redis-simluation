@@ -25,4 +25,5 @@ public final class RedisKeys {
     public static final String GROUP_NAME = "entity-history-group";
     public static final String CONSUMER_NAME = "history-consumer";
     public static final String HISTORY_ENTITY_ = "history:entity:";
+    public static final String TICK = "simulation:tick";
 }
