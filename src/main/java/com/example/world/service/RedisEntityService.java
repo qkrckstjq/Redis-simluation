@@ -17,15 +17,18 @@ public class RedisEntityService implements EntityService {
     private final RedisRepository redisRepository;
     private final RedisService redisService;
     private final BatchProcessor batchProcessor;
+    private final TickManager tickManager;
 
     public RedisEntityService(
         RedisRepository redisRepository,
         RedisService entityClusterService,
-        BatchProcessor batchProcessor
+        BatchProcessor batchProcessor,
+        TickManager tickManager
     ) {
         this.redisRepository = redisRepository;
         this.redisService = entityClusterService;
         this.batchProcessor = batchProcessor;
+        this.tickManager = tickManager;
     }
 
     public void createEntity(String type, String name, int hp, int x, int y) {
@@ -43,12 +46,14 @@ public class RedisEntityService implements EntityService {
         redisRepository.scanWithCursor(
                 () -> redisRepository.scanWorldEntities(BATCH_SIZE),
                 redisService.batchConsumer(BATCH_SIZE, batchProcessor::processSync));
+        tickManager.nextTick();
     }
 
     public void processTickListAsync() {
         redisRepository.scanWithCursor(
                 () -> redisRepository.scanWorldEntities(BATCH_SIZE),
                 redisService.batchConsumer(BATCH_SIZE, batchProcessor::processAsync));
+        tickManager.nextTick();
     }
 
     public void processTickListInMemoryAsync() {
