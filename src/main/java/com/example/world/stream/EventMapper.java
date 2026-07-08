@@ -1,9 +1,11 @@
 package com.example.world.stream;
 
 import com.example.world.entity.*;
+import com.example.world.service.TickManager;
 import com.example.world.util.ByteTypeConverter;
 import com.example.world.websocket.WebSocketMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.json.JsonParseException;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -17,6 +19,7 @@ import java.util.Map;
 public class EventMapper {
     private final WebSocketMapper webSocketMapper;
     private final ObjectMapper objectMapper;
+    private final TickManager tickManager;
 
     public List<HistoryEvent> entitiesToHistoryEvents(List<RedisEntity> entityList) {
         return entityList.stream()
@@ -34,22 +37,27 @@ public class EventMapper {
         return objectMapper.writeValueAsString(object);
     }
 
-    public EntityHistoryDto stringToEntityHistoryDto(String value) {
+    public EntityHistoryDto stringToEntityHistoryDto(String value) throws JsonParseException {
         JsonNode jsonNode = objectMapper.readTree(value);
-        JsonNode payLoad = jsonNode.get("payload");
 
-        StateEnum state = StateEnum.valueOf(jsonNode.get("state").asString());
+        int tick = jsonNode.get("tick").asInt();
+        StateEnum state = StateEnum.valueOf(jsonNode.get("state").asText());
+        long entityId = jsonNode.get("entityId").asLong();
+        int age = jsonNode.get("age").asInt();
 
-        Long targetId = null;
-        if (payLoad != null && payLoad.hasNonNull("targetId")) {
-            targetId = payLoad.get("targetId").asLong();
+        long targetId = 0;
+        JsonNode targetNode = jsonNode.get("targetId");
+        if (targetNode != null && !targetNode.isNull()) {
+            targetId = targetNode.asLong();
         }
-
-        int x = payLoad.get("x").asInt();
-        int y = payLoad.get("y").asInt();
-        long tick = jsonNode.get("tick").asLong();
-
-        return new EntityHistoryDto(state, targetId, x, y, tick);
+        System.out.println(tick);
+        return new EntityHistoryDto(
+                tick,
+                state,
+                targetId,
+                entityId,
+                age
+        );
     }
 
     public HistoryEvent stringToSimulationEventDto(String value) {
@@ -131,7 +139,7 @@ public class EventMapper {
         return new HistoryEvent(
                 entity.getState(),
                 entity.getId(),
-                webSocketMapper.getTick(),
+                tickManager.currentTick(),
                 entity.getTargetId() == null ? 0 : entity.getTargetId(),
                 entity.getAge()
         );
@@ -141,7 +149,7 @@ public class EventMapper {
         return new StreamEvent(
                 entity.getState(),
                 entity.getId(),
-                webSocketMapper.getTick(),
+                tickManager.currentTick(),
                 entity.getTargetId() == null ? 0 : entity.getTargetId(),
                 entity.getAge()
         );
