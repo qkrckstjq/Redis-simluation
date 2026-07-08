@@ -22,6 +22,17 @@ public class AsyncConfig {
         return executor;
     }
 
+    @Bean("historyExecutor")
+    public Executor historyExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(1);
+        executor.setQueueCapacity(1000);
+        executor.setThreadNamePrefix("history-");
+        executor.initialize();
+        return executor;
+    }
+
     @Bean("webSocketExecutor")
     public Executor webSocketExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
