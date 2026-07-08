@@ -27,6 +27,7 @@ public class EntityManager {
     private List<RedisEntity> spawnEntities = new ArrayList<>();
     private List<RedisEntity> noneTargetEntities = new ArrayList<>();
     private List<RedisEntity> historyEntities = new ArrayList<>();
+    private List<RedisEntity> streamEntities = new ArrayList<>();
     private List<Object> geoResults = new ArrayList<>();
     private Map<Long, List<RedisEntity>> nearEntities = new HashMap<>();
     private List<NextMove> nextMoves = new ArrayList<>();
@@ -65,6 +66,7 @@ public class EntityManager {
         entityList.addAll(entityMap.values());
         spawnEntities = new ArrayList<>();
         historyEntities = new ArrayList<>();
+        streamEntities = new ArrayList<>();
     }
 
     public void entityListToMap() {
@@ -91,5 +93,9 @@ public class EntityManager {
 
     public void addHistoryEntity(RedisEntity entity) {
         historyEntities.add(entity);
+    }
+
+    public void addStreamEntity(RedisEntity entity) {
+        streamEntities.add(entity);
     }
 }
