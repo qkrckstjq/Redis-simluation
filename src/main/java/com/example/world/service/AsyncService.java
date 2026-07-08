@@ -2,11 +2,11 @@ package com.example.world.service;
 
 import com.example.world.entity.EntitySnapshotDto;
 import com.example.world.entity.RedisEntity;
-import com.example.world.entity.SimulationEvent;
 import com.example.world.entity.Tick;
 import com.example.world.entity.log.PerformanceLog;
 import com.example.world.entity.log.PerformanceMetric;
 import com.example.world.repository.RedisRepository;
+import com.example.world.stream.EventMapper;
 import com.example.world.stream.HistoryService;
 import com.example.world.stream.StreamService;
 import com.example.world.websocket.WebSocketMapper;
@@ -73,14 +73,28 @@ public class AsyncService {
         this.historyService = historyService;
     }
 
-    @Timed(value = "simulation.stream.flush")
+    @Timed(value = "simulation.entity.history")
     public CompletableFuture<Void> addHistory(List<RedisEntity> entityList) {
         return CompletableFuture.runAsync(() -> {
             long start = System.nanoTime();
-            List<SimulationEvent> eventList = eventMapper.entitiesToEvents(entityList);
-            System.out.println("history event size : " + eventList.size());
             redisRepository.requestPipeLine(
-                    historyService.addHistoryEntities(eventList)
+                    historyService.addHistoryEntities(
+                            eventMapper.entitiesToHistoryEvents(entityList)
+                    )
+            );
+
+            metric.setSaveHistory(System.nanoTime() - start);
+        }, streamExecutor);
+    }
+
+    @Timed(value = "simulation.stream.flush")
+    public CompletableFuture<Void> streamPublish(List<RedisEntity> entityList) {
+        return CompletableFuture.runAsync(() -> {
+            long start = System.nanoTime();
+            redisRepository.requestPipeLine(
+                    streamService.publishStreamEvents(
+                            eventMapper.entitiesToStreamEvents(entityList)
+                    )
             );
 
             metric.setStreamPublish(System.nanoTime() - start);

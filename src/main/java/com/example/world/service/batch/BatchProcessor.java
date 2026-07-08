@@ -12,6 +12,7 @@ import com.example.world.service.*;
 import com.example.world.service.ai.AiDecisionService;
 import com.example.world.service.inmemory.EntityManager;
 import com.example.world.service.inmemory.InMemoryRedisService;
+import com.example.world.stream.EventMapper;
 import com.example.world.stream.StreamService;
 import com.example.world.websocket.WebSocketMapper;
 import com.example.world.websocket.WebSocketService;
@@ -165,7 +166,7 @@ public class BatchProcessor {
 
 
         checkpoint = System.nanoTime();
-        redisRepository.requestPipeLine(streamService.publish(eventMapper.entitiesToEvents(entityList)));
+        redisRepository.requestPipeLine(streamService.publish(eventMapper.entitiesToHistoryEvents(entityList)));
         System.out.printf("[11] Stream Publish      : %d ms%n",
                 (System.nanoTime() - checkpoint) / 1_000_000);
 
@@ -276,6 +277,7 @@ public class BatchProcessor {
 
         checkpoint = System.nanoTime();
         process.setNextMove();
+        process.saveHistoryEntities();
         process.flushStreamEntities();
         metric.setMoveWithCollision(System.nanoTime() - checkpoint);
 
