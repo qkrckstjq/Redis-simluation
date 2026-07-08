@@ -212,4 +212,12 @@ public class RedisRepository {
     public List<String> lRange(String key, int start, int end) {
         return redisTemplate.opsForList().range(key, start, end);
     }
+
+    public String getTick() {
+        return redisTemplate.opsForValue().get(RedisKeys.TICK);
+    }
+
+    public void setTick(String tick) {
+        redisTemplate.opsForValue().set(RedisKeys.TICK, tick);
+    }
 }
