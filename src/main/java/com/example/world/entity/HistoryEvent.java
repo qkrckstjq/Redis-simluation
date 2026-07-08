@@ -3,11 +3,9 @@ package com.example.world.entity;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.util.Map;
-
 @Getter
 @NoArgsConstructor
-public class SimulationEvent {
+public class HistoryEvent {
     private long tick;
 
     private StateEnum state;
@@ -18,7 +16,7 @@ public class SimulationEvent {
 
     private int age;
 
-    public SimulationEvent(StateEnum state, Long curTick, long entityId, long targetId, int age) {
+    public HistoryEvent(StateEnum state, Long curTick, long entityId, long targetId, int age) {
         this.tick = curTick;
         this.state = state;
         this.entityId = entityId;
