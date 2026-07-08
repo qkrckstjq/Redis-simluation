@@ -1,4 +1,4 @@
-package com.example.world.service;
+package com.example.world.stream;
 
 import com.example.world.entity.*;
 import com.example.world.util.ByteTypeConverter;
@@ -18,9 +18,15 @@ public class EventMapper {
     private final WebSocketMapper webSocketMapper;
     private final ObjectMapper objectMapper;
 
-    public List<HistoryEvent> entitiesToEvents(List<RedisEntity> entityList) {
+    public List<HistoryEvent> entitiesToHistoryEvents(List<RedisEntity> entityList) {
         return entityList.stream()
                 .map(this::entityToHistoryEvent)
+                .toList();
+    }
+
+    public List<StreamEvent> entitiesToStreamEvents(List<RedisEntity> entityList) {
+        return entityList.stream()
+                .map(this::entityToStreamEvent)
                 .toList();
     }
 
@@ -59,7 +65,38 @@ public class EventMapper {
         return result;
     }
 
-    public Map<byte[], byte[]> eventToMap(HistoryEvent event) {
+    public Map<byte[], byte[]> historyEventToMap(HistoryEvent event) {
+        Map<byte[], byte[]> result = new HashMap<>();
+
+        result.put(
+                ByteTypeConverter.stringToByte("tick"),
+                ByteTypeConverter.numToByte(event.getTick())
+        );
+
+        result.put(
+                ByteTypeConverter.stringToByte("state"),
+                ByteTypeConverter.stringToByte(event.getState().name())
+        );
+
+        result.put(
+                ByteTypeConverter.stringToByte("entityId"),
+                ByteTypeConverter.numToByte(event.getEntityId())
+        );
+
+        result.put(
+                ByteTypeConverter.stringToByte("targetId"),
+                ByteTypeConverter.numToByte(event.getTargetId())
+        );
+
+        result.put(
+                ByteTypeConverter.stringToByte("age"),
+                ByteTypeConverter.numToByte(event.getAge())
+        );
+
+        return result;
+    }
+
+    public Map<byte[], byte[]> streamEventToMap(StreamEvent event) {
         Map<byte[], byte[]> result = new HashMap<>();
 
         result.put(
@@ -100,7 +137,13 @@ public class EventMapper {
         );
     }
 
-    public StreamEvent entityToStreamEvent() {
-
+    public StreamEvent entityToStreamEvent(RedisEntity entity) {
+        return new StreamEvent(
+                entity.getState(),
+                entity.getId(),
+                webSocketMapper.getTick(),
+                entity.getTargetId() == null ? 0 : entity.getTargetId(),
+                entity.getAge()
+        );
     }
 }
