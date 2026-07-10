@@ -1,6 +1,7 @@
 package com.example.world.config;
 
 import com.example.world.cluster.service.EntityClusterMapper;
+import com.example.world.constants.RedisKeys;
 import com.example.world.entity.log.PerformanceLog;
 import com.example.world.entity.log.PerformanceMetric;
 import com.example.world.service.EntityMapper;
@@ -8,10 +9,13 @@ import com.example.world.service.EntityService;
 import com.example.world.service.RedisService;
 import com.example.world.service.inmemory.InMemoryEntityService;
 import com.example.world.service.inmemory.InMemoryRedisService;
+import com.example.world.stream.metrics.MetricsConsumer;
+import com.example.world.stream.metrics.StreamMetric;
 import io.micrometer.core.aop.TimedAspect;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 @Configuration
 public class BeanConfig {
@@ -54,5 +58,31 @@ public class BeanConfig {
     @Bean
     public TimedAspect timedAspect(MeterRegistry meterRegistry) {
         return new TimedAspect(meterRegistry);
+    }
+
+    @Bean
+    public MetricsConsumer consumer1(
+            StreamMetric streamMetric,
+            StringRedisTemplate redisTemplate
+    ) {
+        return new MetricsConsumer(
+                streamMetric,
+                redisTemplate,
+                null,
+                RedisKeys.METRICS_CONSUMER_1
+        );
+    }
+
+    @Bean
+    public MetricsConsumer consumer2(
+            StreamMetric streamMetric,
+            StringRedisTemplate redisTemplate
+    ) {
+        return new MetricsConsumer(
+                streamMetric,
+                redisTemplate,
+                null,
+                RedisKeys.METRICS_CONSUMER_2
+        );
     }
 }

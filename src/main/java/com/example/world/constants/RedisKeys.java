@@ -23,7 +23,8 @@ public final class RedisKeys {
     public static final String SIMULATION_EVENTS_STR = "simulation-events";
     public static final String ENTITY_STR = "entity:id";
     public static final String METRICS_CONSUMER_GROUP = "metrics-consumer-group";
-    public static final String METRICS_CONSUMER = "metrics-consumer";
+    public static final String METRICS_CONSUMER_1 = "metrics-consumer-1";
+    public static final String METRICS_CONSUMER_2 = "metrics-consumer-2";
     public static final String STATISTICS_CONSUMER_GROUP = "statistics-consumer-group";
     public static final String STATISTICS_CONSUMER = "statistics-consumer";
     public static final String HISTORY_ENTITY_ = "history:entity:";

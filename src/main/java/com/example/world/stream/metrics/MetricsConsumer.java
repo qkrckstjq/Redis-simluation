@@ -18,14 +18,25 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.util.Map;
 
-@Component
-@RequiredArgsConstructor
 public class MetricsConsumer implements InitializingBean, DisposableBean, StreamListener<String, MapRecord<String, String, String>> {
     private final StreamMetric streamMetric;
     private final StringRedisTemplate redisTemplate;
-    private final HistoryService historyService;
-
     private StreamMessageListenerContainer<String, MapRecord<String, String, String>> listenerContainer;
+    private final String consumerName;
+
+    public MetricsConsumer(
+            StreamMetric streamMetric,
+            StringRedisTemplate redisTemplate,
+            StreamMessageListenerContainer<String, MapRecord<String, String, String>> listenerContainer,
+            String consumerName
+    ) {
+        this.streamMetric = streamMetric;
+        this.redisTemplate = redisTemplate;
+        this.listenerContainer = listenerContainer;
+        this.consumerName = consumerName;
+    }
+
+
 
     @Override
     public void afterPropertiesSet() {
@@ -44,7 +55,7 @@ public class MetricsConsumer implements InitializingBean, DisposableBean, Stream
         );
 
         listenerContainer.receive(
-                Consumer.from(RedisKeys.METRICS_CONSUMER_GROUP, RedisKeys.METRICS_CONSUMER),
+                Consumer.from(RedisKeys.METRICS_CONSUMER_GROUP, consumerName),
                 StreamOffset.create(RedisKeys.SIMULATION_EVENTS_STR, ReadOffset.lastConsumed()),
                 this
         );
@@ -94,19 +105,4 @@ public class MetricsConsumer implements InitializingBean, DisposableBean, Stream
         }
     }
 
-//    private SimulationEvent toSimulationEvent(Map<String, String> map) {
-//
-//        Map<String, String> payload = new HashMap<>(map);
-//
-//        payload.remove("state");
-//        payload.remove("tick");
-//        payload.remove("entityId");
-//
-//        return new SimulationEvent(
-//                StateEnum.valueOf(map.get("state")),
-//                Long.parseLong(map.get("tick")),
-//                Long.parseLong(map.get("entityId")),
-//                payload
-//        );
-//    }
 }
