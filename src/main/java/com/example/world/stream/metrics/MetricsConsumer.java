@@ -1,9 +1,7 @@
-package com.example.world.stream;
+package com.example.world.stream.metrics;
 
 import com.example.world.constants.RedisKeys;
-import com.example.world.entity.SimulationEvent;
-import com.example.world.entity.StateEnum;
-import jakarta.annotation.PostConstruct;
+import com.example.world.stream.HistoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
@@ -13,30 +11,40 @@ import org.springframework.data.redis.connection.stream.ReadOffset;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.stream.StreamListener;
+import org.springframework.data.redis.stream.StreamMessageListenerContainer.*;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
 
-@Component
-@RequiredArgsConstructor
-public class EntityEventConsumer implements InitializingBean, DisposableBean,
-        StreamListener<String, MapRecord<String, String, String>> {
-
+public class MetricsConsumer implements InitializingBean, DisposableBean, StreamListener<String, MapRecord<String, String, String>> {
+    private final StreamMetric streamMetric;
     private final StringRedisTemplate redisTemplate;
-    private final HistoryService historyService;
-
     private StreamMessageListenerContainer<String, MapRecord<String, String, String>> listenerContainer;
+    private final String consumerName;
+
+    public MetricsConsumer(
+            StreamMetric streamMetric,
+            StringRedisTemplate redisTemplate,
+            StreamMessageListenerContainer<String, MapRecord<String, String, String>> listenerContainer,
+            String consumerName
+    ) {
+        this.streamMetric = streamMetric;
+        this.redisTemplate = redisTemplate;
+        this.listenerContainer = listenerContainer;
+        this.consumerName = consumerName;
+    }
+
+
 
     @Override
     public void afterPropertiesSet() {
 
         createConsumerGroup();
 
-        StreamMessageListenerContainer.StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> options =
-                StreamMessageListenerContainer.StreamMessageListenerContainerOptions
+        StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> options =
+                StreamMessageListenerContainerOptions
                         .builder()
                         .pollTimeout(Duration.ofSeconds(2))
                         .build();
@@ -47,7 +55,7 @@ public class EntityEventConsumer implements InitializingBean, DisposableBean,
         );
 
         listenerContainer.receive(
-                Consumer.from(RedisKeys.GROUP_NAME, RedisKeys.CONSUMER_NAME),
+                Consumer.from(RedisKeys.METRICS_CONSUMER_GROUP, consumerName),
                 StreamOffset.create(RedisKeys.SIMULATION_EVENTS_STR, ReadOffset.lastConsumed()),
                 this
         );
@@ -57,21 +65,15 @@ public class EntityEventConsumer implements InitializingBean, DisposableBean,
 
     @Override
     public void onMessage(MapRecord<String, String, String> message) {
+        Map<String, String> value = message.getValue();
 
-        try {
+        String state = value.get("state");
+        streamMetric.increment(state);
 
-            SimulationEvent event = toSimulationEvent(message.getValue());
-
-            historyService.save(event);
-
-            redisTemplate.opsForStream().acknowledge(
-                    RedisKeys.GROUP_NAME,
-                    message
-            );
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        redisTemplate.opsForStream().acknowledge(
+                RedisKeys.METRICS_CONSUMER_GROUP,
+                message
+        );
     }
 
     @Override
@@ -90,12 +92,12 @@ public class EntityEventConsumer implements InitializingBean, DisposableBean,
                 redisTemplate.opsForStream().createGroup(
                         RedisKeys.SIMULATION_EVENTS_STR,
                         ReadOffset.latest(),
-                        RedisKeys.GROUP_NAME
+                        RedisKeys.METRICS_CONSUMER_GROUP
                 );
             } else {
                 redisTemplate.opsForStream().createGroup(
                         RedisKeys.SIMULATION_EVENTS_STR,
-                        RedisKeys.GROUP_NAME
+                        RedisKeys.METRICS_CONSUMER_GROUP
                 );
             }
 
@@ -103,19 +105,4 @@ public class EntityEventConsumer implements InitializingBean, DisposableBean,
         }
     }
 
-    private SimulationEvent toSimulationEvent(Map<String, String> map) {
-
-        Map<String, String> payload = new HashMap<>(map);
-
-        payload.remove("state");
-        payload.remove("tick");
-        payload.remove("entityId");
-
-        return new SimulationEvent(
-                StateEnum.valueOf(map.get("state")),
-                Long.parseLong(map.get("tick")),
-                Long.parseLong(map.get("entityId")),
-                payload
-        );
-    }
 }

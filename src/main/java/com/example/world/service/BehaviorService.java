@@ -1,6 +1,7 @@
 package com.example.world.service;
 
 import com.example.world.entity.*;
+import com.example.world.service.inmemory.EntityManager;
 import com.example.world.util.GeoUtil;
 import com.example.world.util.RandUtil;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import java.util.*;
 public class BehaviorService {
     private final Random random = new Random();
     private final CollisionService collisionService;
+    private final EntityManager entityManager;
 
     public void moveWithCollision(List<NextMove> nextMoves, Map<Long, List<Long>> collisionResults) {
         for (NextMove nextMove : nextMoves) {
@@ -34,9 +36,7 @@ public class BehaviorService {
             }
 
             if (!entity.isDead()) {
-                entity.increaseAge();
-                entity.increaseHp();
-                entity.decreaseBreedTick();
+                handleLiveEntity(entity);
             }
 
 //            if (collision.isEmpty()) {
@@ -263,8 +263,7 @@ public class BehaviorService {
 
         target.attackedByWolf();
         if(target.isDead()) {
-//            System.out.printf("%d hunt success", entity.getId());
-            entity.successHunt();
+            handleSuccessHuntEntity(entity);
         }
 
         int curX = entity.getX();
@@ -351,11 +350,10 @@ public class BehaviorService {
                 null,
                 false
         );
+
         spawnList.add(child);
-
-
-        entity.afterBreed();
-        partner.afterBreed();
+        handleSuccessSpawnEntity(entity);
+        handleSuccessBreedEntity(partner);
 
         return new BehaviorResult(
                 StateEnum.SPAWN,
@@ -367,17 +365,36 @@ public class BehaviorService {
     private void handleBlockedEntity(RedisEntity entity) {
         entity.increaseStamina();
         entity.setSkipGeoUpdate(true);
-//        switch (entity.getState()) {
-//            case CHASE:
-//                entity.setTargetId(null);
-//                break;
-//            case RUN:
-//            case FLOCK:
-//        }
     }
 
     private void handleUnBlockedEntity(RedisEntity entity) {
         entity.decreaseStamina();
         entity.setSkipGeoUpdate(false);
+    }
+
+    private void handleDeadEntity(RedisEntity entity) {
+
+    }
+
+    private void handleLiveEntity(RedisEntity entity) {
+        entity.increaseAge();
+        entity.increaseHp();
+        entity.decreaseBreedTick();
+    }
+
+    private void handleSuccessHuntEntity(RedisEntity entity) {
+        entity.successHunt();
+        entityManager.addHistoryEntity(entity);
+        entityManager.addStreamEntity(entity);
+    }
+
+    private void handleSuccessSpawnEntity(RedisEntity entity) {
+        entity.afterBreed();
+        entityManager.addHistoryEntity(entity);
+        entityManager.addStreamEntity(entity);
+    }
+
+    private void handleSuccessBreedEntity(RedisEntity entity) {
+        entity.afterBreed();
     }
 }

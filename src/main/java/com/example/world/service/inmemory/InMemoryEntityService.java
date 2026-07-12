@@ -4,6 +4,7 @@ import com.example.world.entity.RedisGeo;
 import com.example.world.repository.RedisRepository;
 import com.example.world.service.EntityService;
 import com.example.world.service.RedisService;
+import com.example.world.service.TickManager;
 import com.example.world.service.batch.BatchProcessor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -20,17 +21,20 @@ public class InMemoryEntityService implements EntityService {
     private final InMemoryRedisService inMemoryRedisService;
     private final BatchProcessor batchProcessor;
     private final EntityManager entityManager;
+    private final TickManager tickManager;
 
     public InMemoryEntityService(
             RedisRepository redisRepository,
             InMemoryRedisService inMemoryRedisService,
             BatchProcessor batchProcessor,
-            EntityManager entityManager
+            EntityManager entityManager,
+            TickManager tickManager
     ) {
         this.redisRepository = redisRepository;
         this.inMemoryRedisService = inMemoryRedisService;
         this.batchProcessor = batchProcessor;
         this.entityManager = entityManager;
+        this.tickManager = tickManager;
     }
 
     public void createEntity(String type, String name, int hp, int x, int y) {}
@@ -44,11 +48,13 @@ public class InMemoryEntityService implements EntityService {
     @Override
     public void processTickListSync() {
         batchProcessor.processInMemoryAsync();
+        tickManager.nextTick();
     }
 
     @Override
     public void processTickListAsync() {
         batchProcessor.processInMemoryAsync();
+        tickManager.nextTick();
     }
 
     public List<RedisGeo> getNearEntities(Long base, double range) {

@@ -21,6 +21,7 @@ public final class PerformanceLogger {
                 [8] Apply Move               : %d ms
 
                 [Async] Redis Update         : %d ms
+                [Async] Save History         : %d ms
                 [Async] Stream Publish       : %d ms
                 [Async] WebSocket Send       : %d ms
                 [Async] Total                : %d ms
@@ -37,6 +38,7 @@ public final class PerformanceLogger {
                 metric.getAddSpawnEntities() / SCALE,
                 metric.getApplyMove() / SCALE,
                 metric.getRedisUpdate() / SCALE,
+                metric.getSaveHistory() / SCALE,
                 metric.getStreamPublish() / SCALE,
                 metric.getWebsocketSend() / SCALE,
                 metric.getAsyncTotal() / SCALE,

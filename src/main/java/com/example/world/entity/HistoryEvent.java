@@ -1,30 +1,32 @@
 package com.example.world.entity;
 
 import lombok.Getter;
-import lombok.Setter;
-
-import java.util.Map;
+import lombok.NoArgsConstructor;
 
 @Getter
-@Setter
-public class EntityHistoryDto {
-    private int tick;
+@NoArgsConstructor
+public class HistoryEvent {
+    private long tick;
+
     private StateEnum state;
-    private long targetId;
+
     private long entityId;
+
+    private long targetId;
+
     private int age;
 
-    public EntityHistoryDto(
-            int tick,
+    public HistoryEvent(
             StateEnum state,
-            long targetId,
             long entityId,
+            long curTick,
+            long targetId,
             int age
     ) {
-        this.tick = tick;
         this.state = state;
-        this.targetId = targetId;
         this.entityId = entityId;
+        this.tick = curTick;
+        this.targetId = targetId;
         this.age = age;
     }
 }

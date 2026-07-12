@@ -16,6 +16,7 @@ public class PerformanceMetric {
     private long addSpawnEntities;
     private long applyMove;
     private long redisUpdate;
+    private long saveHistory;
     private long streamPublish;
     private long websocketSend;
     private long asyncTotal;

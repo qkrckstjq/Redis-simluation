@@ -6,6 +6,7 @@ import com.example.world.entity.EntitySnapshotDto;
 import com.example.world.entity.RedisEntity;
 import com.example.world.entity.Tick;
 import com.example.world.entity.log.PerformanceMetric;
+import com.example.world.service.TickManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.geo.GeoResults;
 import org.springframework.data.redis.connection.RedisGeoCommands;
@@ -19,10 +20,10 @@ import java.util.Set;
 @Component
 @RequiredArgsConstructor
 public class WebSocketMapper {
-    private long tick = 1L;
     private static final String MOVE = "MOVE";
     private final EntityClusterMapper geoMapper;
     private final PerformanceMetric metric;
+    private final TickManager tick;
 
     public EntitySnapshotDto redisEntityToSnapShotDto(RedisEntity entity) {
         return new EntitySnapshotDto(
@@ -51,7 +52,7 @@ public class WebSocketMapper {
     public Tick redisEntitiesToTick(List<EntitySnapshotDto> entities) {
         return new Tick(
                 MOVE,
-                tick++,
+                tick.currentTick(),
                 entities,
                 metric
         );
@@ -153,9 +154,5 @@ public class WebSocketMapper {
         }
 
         return result;
-    }
-
-    public Long getTick() {
-        return this.tick;
     }
 }

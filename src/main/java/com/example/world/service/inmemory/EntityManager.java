@@ -1,13 +1,14 @@
 package com.example.world.service.inmemory;
 
 import com.example.world.cluster.CellManager;
+import com.example.world.entity.NextMove;
 import com.example.world.entity.RedisEntity;
 import com.example.world.repository.RedisRepository;
 import com.example.world.service.EntityMapper;
 import com.example.world.service.RedisService;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
-import org.springframework.beans.factory.annotation.Qualifier;
+import lombok.Setter;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -19,9 +20,17 @@ import static com.example.world.service.batch.BatchProcessor.BATCH_SIZE;
 
 @Service
 @Getter
+@Setter
 public class EntityManager {
     private List<RedisEntity> entityList = new ArrayList<>();
     private Map<Long, RedisEntity> entityMap = new HashMap<>();
+    private List<RedisEntity> spawnEntities = new ArrayList<>();
+    private List<RedisEntity> noneTargetEntities = new ArrayList<>();
+    private List<RedisEntity> historyEntities = new ArrayList<>();
+    private List<RedisEntity> streamEntities = new ArrayList<>();
+    private List<Object> geoResults = new ArrayList<>();
+    private Map<Long, List<RedisEntity>> nearEntities = new HashMap<>();
+    private List<NextMove> nextMoves = new ArrayList<>();
     private final RedisRepository redisRepository;
     private final RedisService redisService;
     private final EntityMapper entityMapper;
@@ -52,9 +61,19 @@ public class EntityManager {
         }
     }
 
-    public void initEntityList() {
+    public void initEntitiesField() {
         entityList = new ArrayList<>();
         entityList.addAll(entityMap.values());
+        spawnEntities = new ArrayList<>();
+        historyEntities = new ArrayList<>();
+        streamEntities = new ArrayList<>();
+    }
+
+    public void entityListToMap() {
+        for(RedisEntity entity : entityList) {
+            long entityId = entity.getId();
+            entityMap.put(entityId, entity);
+        }
     }
 
     public void addEntity(RedisEntity entity) {
@@ -70,5 +89,13 @@ public class EntityManager {
 
     public void removeEntity(RedisEntity entity) {
         entityMap.remove(entity.getId());
+    }
+
+    public void addHistoryEntity(RedisEntity entity) {
+        historyEntities.add(entity);
+    }
+
+    public void addStreamEntity(RedisEntity entity) {
+        streamEntities.add(entity);
     }
 }

@@ -3,28 +3,30 @@ package com.example.world.entity;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.Map;
-
 @Getter
 @Setter
-public class EntityHistoryDto {
-    private int tick;
+public class StreamEvent {
+    private long tick;
+
     private StateEnum state;
-    private long targetId;
+
     private long entityId;
+
+    private long targetId;
+
     private int age;
 
-    public EntityHistoryDto(
-            int tick,
+    public StreamEvent(
             StateEnum state,
-            long targetId,
             long entityId,
+            long curTick,
+            long targetId,
             int age
     ) {
-        this.tick = tick;
         this.state = state;
-        this.targetId = targetId;
         this.entityId = entityId;
+        this.tick = curTick;
+        this.targetId = targetId;
         this.age = age;
     }
 }
