@@ -3,7 +3,6 @@ package com.example.world.repository;
 import com.example.world.constants.RedisKeys;
 import com.example.world.entity.RedisEntity;
 import com.example.world.entity.RedisGeo;
-import io.lettuce.core.cluster.api.async.RedisAdvancedClusterAsyncCommands;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.geo.GeoResults;
@@ -11,6 +10,9 @@ import org.springframework.data.geo.Point;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisGeoCommands;
 import org.springframework.data.redis.connection.RedisGeoCommands.GeoLocation;
+import org.springframework.data.redis.connection.stream.PendingMessagesSummary;
+import org.springframework.data.redis.connection.stream.StreamInfo.*;
+import org.springframework.data.redis.connection.stream.StreamInfo;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.ScanOptions;
@@ -219,5 +221,17 @@ public class RedisRepository {
 
     public void setTick(String tick) {
         redisTemplate.opsForValue().set(RedisKeys.TICK, tick);
+    }
+
+    public Long getStreamSize(String key) {
+        return redisTemplate.opsForStream().size(key);
+    }
+
+    public PendingMessagesSummary getPending(String key, String consumerGroup) {
+        return redisTemplate.opsForStream().pending(key, consumerGroup);
+    }
+
+    public XInfoGroups getXInfo(String key) {
+        return redisTemplate.opsForStream().groups(key);
     }
 }
