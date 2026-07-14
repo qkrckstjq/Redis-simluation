@@ -58,7 +58,6 @@ public class ConsumerHelper {
     }
 
     public void recoveryPending(String consumerName) {
-
         PendingMessages pendingMessages =
                 redisTemplate.opsForStream().pending(
                         RedisKeys.SIMULATION_EVENTS_STR,
@@ -145,9 +144,9 @@ public class ConsumerHelper {
     }
 
     private void processAndAck(MapRecord<String, Object, Object> record) {
-        if (true) {
-            throw new RuntimeException("TEST Pending Error");
-        }
+//        if (true) {
+//            throw new RuntimeException("TEST Pending Error");
+//        }
 
         @SuppressWarnings("unchecked")
         Map<String, String> value =

@@ -1,6 +1,10 @@
 package com.example.world.stream.metrics;
 
 import com.example.world.constants.RedisKeys;
+import io.micrometer.core.annotation.Timed;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Timer.*;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.data.redis.connection.stream.Consumer;
@@ -21,19 +25,24 @@ public class MetricsConsumer implements InitializingBean, DisposableBean, Stream
     private StreamMessageListenerContainer<String, MapRecord<String, String, String>> listenerContainer;
     private final String consumerName;
     private final ConsumerHelper consumerHelper;
+    private final MeterRegistry meterRegistry;
+    private final Timer processTimer;
 
     public MetricsConsumer(
             StreamMetric streamMetric,
             StringRedisTemplate redisTemplate,
             StreamMessageListenerContainer<String, MapRecord<String, String, String>> listenerContainer,
             String consumerName,
-            ConsumerHelper consumerHelper
+            ConsumerHelper consumerHelper,
+            MeterRegistry meterRegistry
     ) {
         this.streamMetric = streamMetric;
         this.redisTemplate = redisTemplate;
         this.listenerContainer = listenerContainer;
         this.consumerName = consumerName;
         this.consumerHelper = consumerHelper;
+        this.meterRegistry = meterRegistry;
+        this.processTimer = Timer.builder("simulation.stream.process").register(meterRegistry);
     }
 
 
@@ -66,12 +75,16 @@ public class MetricsConsumer implements InitializingBean, DisposableBean, Stream
 
     @Override
     public void onMessage(MapRecord<String, String, String> message) {
+        Sample sample = Timer.start(meterRegistry);
+
         try {
-            if(true) throw new RuntimeException("TEST Consumer Error");
+//            if(true) throw new RuntimeException("TEST Consumer Error");
             consumerHelper.process(message.getValue());
             consumerHelper.ack(message);
         } catch (Exception e) {
             streamMetric.incrementProcessError();
+        } finally {
+            sample.stop(processTimer);
         }
     }
 
@@ -83,7 +96,9 @@ public class MetricsConsumer implements InitializingBean, DisposableBean, Stream
     }
 
     @Scheduled(fixedDelay = 30_000)
-    private void recoveryPending() {
+    @Timed("simulation.stream.recovery")
+    public void recoveryPending() {
         consumerHelper.recoveryPending(consumerName);
     }
 }
+

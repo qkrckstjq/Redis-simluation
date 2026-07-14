@@ -65,14 +65,16 @@ public class BeanConfig {
     public MetricsConsumer consumer1(
             StreamMetric streamMetric,
             StringRedisTemplate redisTemplate,
-            ConsumerHelper consumerHelper
+            ConsumerHelper consumerHelper,
+            MeterRegistry meterRegistry
     ) {
         return new MetricsConsumer(
                 streamMetric,
                 redisTemplate,
                 null,
                 RedisKeys.METRICS_CONSUMER_1,
-                consumerHelper
+                consumerHelper,
+                meterRegistry
         );
     }
 
@@ -80,14 +82,16 @@ public class BeanConfig {
     public MetricsConsumer consumer2(
             StreamMetric streamMetric,
             StringRedisTemplate redisTemplate,
-            ConsumerHelper consumerHelper
+            ConsumerHelper consumerHelper,
+            MeterRegistry meterRegistry
     ) {
         return new MetricsConsumer(
                 streamMetric,
                 redisTemplate,
                 null,
                 RedisKeys.METRICS_CONSUMER_2,
-                consumerHelper
+                consumerHelper,
+                meterRegistry
         );
     }
 }
