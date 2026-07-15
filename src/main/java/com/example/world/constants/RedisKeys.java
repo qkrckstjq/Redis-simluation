@@ -21,6 +21,7 @@ public final class RedisKeys {
     public static final String WORLD_STR = "world:entities";
     public static final String GEO_STR = "geo:entities";
     public static final String SIMULATION_EVENTS_STR = "simulation-events";
+    public static final String SIMULATION_EVENTS_DLQ = "simulation-events-dlq";
     public static final String ENTITY_STR = "entity:id";
     public static final String METRICS_CONSUMER_GROUP = "metrics-consumer-group";
     public static final String METRICS_CONSUMER_1 = "metrics-consumer-1";

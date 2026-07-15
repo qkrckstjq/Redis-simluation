@@ -9,6 +9,7 @@ import com.example.world.service.EntityService;
 import com.example.world.service.RedisService;
 import com.example.world.service.inmemory.InMemoryEntityService;
 import com.example.world.service.inmemory.InMemoryRedisService;
+import com.example.world.stream.metrics.ConsumerHelper;
 import com.example.world.stream.metrics.MetricsConsumer;
 import com.example.world.stream.metrics.StreamMetric;
 import io.micrometer.core.aop.TimedAspect;
@@ -63,26 +64,34 @@ public class BeanConfig {
     @Bean
     public MetricsConsumer consumer1(
             StreamMetric streamMetric,
-            StringRedisTemplate redisTemplate
+            StringRedisTemplate redisTemplate,
+            ConsumerHelper consumerHelper,
+            MeterRegistry meterRegistry
     ) {
         return new MetricsConsumer(
                 streamMetric,
                 redisTemplate,
                 null,
-                RedisKeys.METRICS_CONSUMER_1
+                RedisKeys.METRICS_CONSUMER_1,
+                consumerHelper,
+                meterRegistry
         );
     }
 
     @Bean
     public MetricsConsumer consumer2(
             StreamMetric streamMetric,
-            StringRedisTemplate redisTemplate
+            StringRedisTemplate redisTemplate,
+            ConsumerHelper consumerHelper,
+            MeterRegistry meterRegistry
     ) {
         return new MetricsConsumer(
                 streamMetric,
                 redisTemplate,
                 null,
-                RedisKeys.METRICS_CONSUMER_2
+                RedisKeys.METRICS_CONSUMER_2,
+                consumerHelper,
+                meterRegistry
         );
     }
 }
