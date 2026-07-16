@@ -234,4 +234,8 @@ public class RedisRepository {
     public XInfoGroups getXInfo(String key) {
         return redisTemplate.opsForStream().groups(key);
     }
+
+    public Long getEntitiesSize() {
+        return redisTemplate.opsForSet().size(RedisKeys.WORLD_STR);
+    }
 }
