@@ -1,35 +1,491 @@
-## Redis Stream
+# Redis Simulation
+**Redis**를 메인 데이터 저장소로 사용하여 수만 개의 엔티티가 실시간으로 상호작용하는 시뮬레이션을 구현하고
 
-<img width="1537" height="613" alt="image" src="https://github.com/user-attachments/assets/13de2b0f-683a-4d4a-a4e8-27fde06c6776" />
+**Redis Cluster** 환경에서 성능과 운영성을 검증하는 프로젝트입니다.
 
-**상황**: 녹색 그래프인 `Redis-1:6379`가 다른 노드들에 비해 `저장 공간`, `CPU 사용량`, `명령어 실행 횟수`가 많이 높은 걸 확인 할 수 있다.
+<img width="1000" height="563" alt="Redis Simulation - Chrome 2026-07-16 19-23-41 (1)" src="https://github.com/user-attachments/assets/f0b9fc3f-6fbf-4ead-8560-53e1e03eba68" />
 
-**원인**: 현재 사용중인 `Redis`의 `Stream`때문이다.
 
-- Stream Key : "simulation-events"를 키로 사용하는 스트림을 생성한다.
-- Consumer Group : "entity-history-group"를 컨슈머 그룹으로 두고 "simulation-events"를 `sub`한다.
 
-1. 이후 Spring에서 생성된 `Consumer Group`은 `sub`한 스트림에 데이터가 적재되면 읽어온다.
-2. 적재된 데이터를 가공하여 `"history:entity:id"`형태로 `Redis`에 `HashSet` 형태로 해당 엔티티의 history를 기록한다.
+
+
+# 프로젝트 소개
+엔티티들은 알고리즘을 기반으로 2차원 좌표 평면에서 행동합니다.
+
+모든 행동은 100ms Tick 단위로 처리되며, 이동·사냥·도망·번식과 같은 상태 변화가 발생합니다.
+
+엔티티의 상태는 모두 Redis에 저장되며, Tick마다 저장이 필요한 정보를 Redis에 반영합니다.
+
+이러한 과정에서 Redis GEO, Streams, Cluster, Consumer Group 등의 기능을 활용하여 실시간 상태 관리와 이벤트 처리를 수행하고, Redis의 부하 및 장애 상황을 모니터링합니다.
+
+
+# 프로젝트 핵심 기능
+
+| 기능 | 설명 |
+|------|------|
+| **Tick 기반 실시간 시뮬레이션** | 100ms Tick마다 수천~수만 개의 엔티티 상태를 갱신하며 실시간 시뮬레이션을 수행합니다. |
+| **알고리즘 기반 상태 판단** | 늑대와 양의 이동, 추적, 공격, 도망, 군집(Flocking), 번식 등의 행동을 상태(State) 기반으로 처리합니다. |
+| **Redis GEO 기반 주변 엔티티 탐색** | 반경 내 엔티티를 탐색하여 AI 의사결정과 충돌 처리를 수행하며, Cell 기반 공간 분할을 통해 탐색 성능을 최적화했습니다. |
+| **Redis Pipeline 기반 대량 데이터 처리** | Tick마다 발생하는 대량의 읽기/쓰기 요청을 Pipeline으로 처리하여 Redis와 Spring 간 네트워크 오버헤드를 줄였습니다. |
+| **Redis Cluster 기반 데이터 분산** | Hash Tag와 Cell 단위 Key 설계를 통해 데이터를 분산 저장하고 Cluster 환경에서 시뮬레이션을 수행합니다. |
+| **Redis Streams 기반 이벤트 처리** | 사냥, 번식, 죽음 등의 이벤트를 Stream에 기록하여 비동기 이벤트 처리와 메트릭 수집에 활용합니다. |
+| **Consumer 장애 복구 및 DLQ 관리** | Pending Message Recovery, Claim 처리, Dead Letter Queue를 구현하여 Consumer 장애 상황에서도 이벤트 유실을 최소화했습니다. |
+| **Prometheus · Grafana 기반 모니터링** | Spring과 Redis의 CPU, Memory, Entity 수, Stream 처리량 등을 실시간으로 모니터링하고 부하 테스트 결과를 시각화합니다. |
 
 ---
 
-## 문제점
+# 기술 스택
+| 카테고리 | 기술 |
+| - | - |
+| BackEnd | Java, Spring, WebSocket |
+| FrontEnd | HTML, CSS, JavaScript |
+| DataBase | Redis Cluster |
+| Monitoring | Prometheus, Grafana |
+| Infra | Docker, Docker Compose |
 
-### 너무 많은 데이터 저장
-<img width="1535" height="873" alt="image" src="https://github.com/user-attachments/assets/5af65a51-26f9-40b4-b10f-0855da94dc22" />
+---
 
-`"simulation-events"` 스트림에 데이터가 적재되고, 매 틱, 각 앤티티마다 `CHASE, ATTACK, RUN, SPAWN`등 특정 상태일 때마다 계속해서 `stream`에 `publish`하고 있다.
-이는 케이스 마다 달라지지만, 1000틱, 2000틱, 3000틱으로 올라갈수록, 앤티티들이 많아지고 그에 따라 이벤트가 발생할수록
-기하급수적으로 많은 양의 데이터를 스트림에 적재중이였다.
+# Redis 선택 이유
+이 프로젝트에서는 **Redis**의 다양한 기능을 활용합니다.
+
+`GeoSearch, Stream, Consumer Group, Cluster, Hash, Set, List...`
+
+인접 앤티티를 탐색하기 위해 GeoSearch를 사용하고
+
+앤티티의 상태 및 정보를 저장하기 위해 **Hash**자료구조로 저장하고
+
+각종 메타데이터(앤티티 ID Set, 앤티티 history)는 **Set**과 **List**를 통해 관리하며
+
+**Redis Cluster**를 통해 부하를 분산하고 스트림을 통해 비교적 가벼운 이벤트들을 적재하고 관리합니다.
+
+이렇게 다양한 형태의 자료구조로 데이터를 저장가능하고
+
+매 Tick(100ms)마다 수천~수만 건의 읽기·쓰기 요청이 발생하는 환경에서 낮은 지연 시간으로 데이터를 처리할 수 있는 저장소가 필요했습니다.
+
+Redis는 다양한 자료구조와 빠른 응답 속도를 제공하며, Cluster와 Streams 등 프로젝트에서 필요한 기능을 함께 제공하기 때문에 메인 데이터 저장소로 선택했습니다.
+
+---
+
+# 시뮬레이션 설명
+
+## 엔티티 종류
+
+시뮬레이션은 `SHEEP`와 `WOLF` 두 종류의 엔티티로 구성됩니다.
+
+### 🟩 SHEEP
+
+- 비공격 엔티티
+- 주변 Sheep과 군집(Flocking) 행동 수행
+- 번식 조건을 만족하면 반경 `1.5` 이내의 Sheep과 번식
+- Wolf를 탐지하면 도망(Run) 상태로 전환
+
+### 🟥 WOLF
+
+- 공격 엔티티
+- 반경 `10` 이내의 Sheep을 탐색
+- Sheep을 추적(Chase) 후 공격(Attack)
+- 사냥 성공 시 체력과 스테미나 회복
+- 번식 조건을 만족하면 다른 Wolf와 번식
+
+---
+
+## 공통 로직
+
+### SEARCH
+
+모든 엔티티는 `Redis GEO Search`를 이용하여 주변 엔티티를 탐색하고 다음 행동을 결정합니다.
+
+### AGE
+
+모든 엔티티는 Tick마다 나이가 증가하며, Age가 `1000`을 초과하면 사망합니다.
+
+### BREED
+
+번식 가능한 엔티티는 가까운 동일 타입의 엔티티를 우선적으로 따라가며 번식을 시도합니다.
+
+---
+
+## 시뮬레이션 목표
+
+군집을 이루며 번식하는 Sheep과 이를 사냥하는 Wolf의 상호작용을 통해 개체 수 변화와 이벤트 발생을 관찰합니다.
+
+모든 상태 변화는 Redis에 저장되며, Redis Cluster 환경에서 발생하는 부하와 이벤트 처리 과정을 분석하는 것이 프로젝트의 핵심 목표입니다.
+---
+
+# 작동 흐름
+
+시뮬레이션은 100ms마다 아래 순서로 수행됩니다.
+| 단계 | 작업 | 설명 |
+|------|------|------|
+| **1** | Read Entities | Redis(In-Memory)에서 엔티티 정보를 조회합니다. |
+| **2** | Skip GeoSearch | 주변 탐색이 필요 없는 엔티티를 필터링합니다. |
+| **3** | GeoSearch | Redis GEO를 이용하여 주변 엔티티를 탐색합니다. |
+| **4** | Decide Next Move | 주변 엔티티를 기반으로 다음 행동(State)을 결정합니다. |
+| **5** | Execute Behavior | 이동, 공격, 도망, 번식 등의 행동을 수행하고 충돌을 처리합니다. |
+| 아래부터 비동기 | - | - |
+| **-** | Update Entity State | 변경된 엔티티 정보를 Redis에 반영합니다. |
+| **-** | Publish Stream Events | 발생한 이벤트를 Redis Streams에 기록합니다. |
+| **-** | Create Spawn Entities | 새롭게 생성된 엔티티를 Redis에 저장합니다. |
+| **-** | Send Snapshot | 현재 Tick의 엔티티 정보를 WebSocket을 통해 클라이언트에 전송합니다. |
+---
+
+# 주요 기능
+
+## Redis GEO를 활용한 주변 엔티티 탐색
+
+모든 엔티티는 매 Tick마다 주변 엔티티를 탐색하여 다음 행동을 결정합니다.
+
+Redis GEO Search를 사용하여 반경 내 엔티티를 조회하며, 탐색 범위가 여러 Cell에 걸치는 경우 인접 Cell까지 함께 조회하여 정확한 탐색 결과를 제공합니다.
+
+> 2차원 좌표를 Redis GEO에서 사용할 수 있도록 실제 위도·경도 좌표계로 스케일링하여 저장했습니다. 이를 통해 Redis GEO의 반경 탐색 기능을 그대로 활용하면서 2차원 시뮬레이션 환경에서 주변 엔티티를 효율적으로 정해진 좌표안에서는 큰 오차범위 없이 탐색했습니다.
+
+<img width="136" height="125" alt="image" src="https://github.com/user-attachments/assets/652a97f5-b7d3-4f1d-a395-026acd137ab6" />
+(🟥 WOLF 기준 반경10`(노란색 원)` 이내의 노란색으로 하이라이트 처리된 다른 앤티티들)
+
+### 적용 기술
+
+- Redis GEO
+- Radius Search
+- Cell 기반 공간 분할
+- Multi Cell Search
+
+---
+
+## AI 상태 머신
+
+엔티티는 주변 환경에 따라 상태(State)를 변경하며 행동합니다.
+
+- MOVE
+- IDLE
+- CHASE
+- ATTACK
+- RUN
+- FLOCK
+- SPAWN
+- REST
+
+늑대와 양은 서로 다른 상태 전이 로직을 가지며, 주변 엔티티의 종류와 거리, 체력, 스테미나, 나이 등을 고려하여 다음 행동을 결정합니다.
+
+---
+
+## Redis Pipeline을 이용한 대량 요청 최적화
+
+매 Tick마다 수천~수만 건의 Redis Read/Write 요청이 발생합니다.
+
+이를 일반 요청으로 처리할 경우 네트워크 RTT가 병목이 되므로, Pipeline을 적용하여 요청을 한 번에 전송하도록 구현했습니다.
+
+### 적용 효과
+
+- Redis 네트워크 RTT 감소
+- Tick 처리 시간 단축
+- 대량 엔티티 처리 성능 향상
+
+---
+
+## Redis Cluster 기반 데이터 분산
+
+Redis Cluster 환경에서 데이터를 균등하게 분산하기 위해 Cell 단위 Key와 Hash Tag를 적용했습니다.
+
+이를 통해 Cross Slot 문제를 방지하면서 주변 탐색과 데이터 업데이트를 수행하도록 설계했습니다.
+
+<img width="202" height="116" alt="image" src="https://github.com/user-attachments/assets/78352120-f193-4674-8ede-dd28a3449977" />
 
 
-<img width="274" height="37" alt="image" src="https://github.com/user-attachments/assets/67e549e2-7a4e-466c-a2d1-87a65918691d" />
+### 적용 기술
 
-대략 2000틱 정도 유지했을 경우, 쌓인 스트림 데이터로 `7,285,621`개의 데이터가 스트림에 적재되었다.
+- Redis Cluster
+- Hash Tag
+- Cell Partitioning
 
-### 명령어 쏠림
+---
 
-<img width="1533" height="873" alt="image" src="https://github.com/user-attachments/assets/635a6f35-4411-4c7c-a190-0d081d709f1a" />
+## Redis Streams 기반 이벤트 처리
 
-10분 가량 유지된 상태에서 `stream`과 관련된 명령어들 때문에 `redis-1`노드가 다른 노드들에 비해 두 배 이상의 명령어를 소화하고 있다.
+상태 변화 중 의미 있는 이벤트를 Redis Streams에 기록합니다.
+
+기록된 이벤트는 Consumer Group이 비동기로 처리하며, 메트릭 수집과 이벤트 분석에 활용됩니다.
+
+<img width="327" height="190" alt="image" src="https://github.com/user-attachments/assets/a1910f9f-1e67-4adc-8485-54baca5d8494" />
+
+
+### 기록 이벤트
+
+- SPAWN
+- HUNT
+- DEAD
+
+---
+
+## Consumer 장애 복구
+
+Consumer 장애 발생 시 Pending Entry List(PEL)에 남아 있는 메시지를 Recovery하여 다시 처리합니다.
+
+<img width="538" height="272" alt="image" src="https://github.com/user-attachments/assets/13fe89a6-c211-4839-8203-0a2cacc8e6a5" />
+
+일정 횟수 이상 재처리에 실패한 이벤트는 Dead Letter Queue(DLQ)로 이동하여 이벤트 유실을 방지했습니다.
+
+<img width="399" height="121" alt="image" src="https://github.com/user-attachments/assets/87ceaba6-f4af-46ab-9abe-bf7dca1fc04a" />
+
+---
+
+<img width="517" height="645" alt="image" src="https://github.com/user-attachments/assets/13eb9dea-edb9-45a4-bbc0-06a3536c76cf" />
+
+<img width="1510" height="307" alt="image" src="https://github.com/user-attachments/assets/e54e1a03-d744-4213-8c5e-0045d3e90ebb" />
+`(Stream에 적재된 이벤트들과 Pending된 데이터 그라파나에서 조회가능)`
+
+
+### 적용 기술
+
+- Consumer Group
+- Pending Recovery
+- Claim
+- Dead Letter Queue
+
+---
+
+## WebSocket 기반 실시간 시각화
+
+매 Tick마다 엔티티 Snapshot을 WebSocket으로 전송하여 프론트엔드에서 실시간으로 렌더링합니다.
+
+또한 선택한 엔티티의 상태, 탐색 범위, 행동 이력 등을 함께 확인할 수 있도록 구현했습니다.
+
+<img width="1092" height="632" alt="image" src="https://github.com/user-attachments/assets/0de93e98-ddd7-4f4f-95b4-8aeaa20a63cd" />
+
+
+
+### 제공 기능
+
+- 실시간 Entity 렌더링
+- Entity 검색
+- Range 표시
+- History 조회
+- HUD(FPS, Entity Count)
+
+---
+
+## Prometheus · Grafana 모니터링
+
+Spring과 Redis에서 발생하는 메트릭을 Prometheus로 수집하고 Grafana를 통해 시각화했습니다.
+
+이를 통해 엔티티 증가에 따른 CPU, Memory, Tick 처리 시간, Stream 처리량 등을 분석할 수 있도록 구성했습니다.
+
+---
+
+# 개선 사항
+
+## ❗️ Redis Pipeline 적용
+
+### 기존의 방식
+
+엔티티 정보를 조회하거나 저장할 때 각 명령을 개별적으로 Redis에 요청하였다.
+
+```text
+HGETALL entity:1
+HGETALL entity:2
+HGETALL entity:3
+...
+
+HMSET entity:1
+HMSET entity:2
+HMSET entity:3
+...
+```
+
+엔티티 수만큼 Redis와 네트워크 왕복(RTT)이 발생하였다.
+
+### 문제점
+
+**Tick마다 수천 개의 Redis 명령이 개별적으로 전송되면서 네트워크 왕복(RTT)이 병목이 되었다.**
+
+엔티티 수가 증가할수록 Redis 자체의 처리 시간보다 네트워크 왕복 비용의 영향이 커졌고, Tick 처리 시간이 증가하였다.
+
+---
+
+### 개선한 방식
+
+Redis에서 제공하는 **Pipeline** 기능을 적용하여 여러 명령을 하나의 요청으로 묶어 처리하도록 변경하였다.
+
+```java
+public List<Object> responsePipeLine(Consumer<RedisConnection> consumer) {
+    return redisTemplate.executePipelined(
+            (RedisCallback<Object>) connection -> {
+                consumer.accept(connection);
+                return null;
+            });
+}
+```
+
+기존처럼 명령을 하나씩 요청하는 대신
+
+여러 명령을 하나의 네트워크 요청으로 전송하여 Redis와의 왕복 횟수를 크게 줄였다.
+
+### 개선된 성능
+
+- Redis와의 네트워크 왕복(RTT) 감소
+- Tick당 Read/Write 처리 시간 단축
+- 엔티티 수가 증가할수록 성능 향상 효과 증가
+
+**Read/Write 성능 개선 표**
+| Count | Before | After | Improvement |
+|--------------|-------:|------:|------------:|
+| 1,000 | 120 ms | 40 ms | **-80 ms (≈66.7%)** |
+
+---
+
+## ❗️ 앤티티들의 충돌 판정 개선
+
+**기존의 방식**
+
+다음 이동할 좌표값에 대해서
+`Map<Poisiton, Long>`을 사용하여 중복될 다음 좌표들을 거르고,
+다음 이동할 좌표 기준 geoSearch 반경 0.2m탐색을 통해 본인 제외, 움직이기 전 앤티티들이 반경 0.2m이내에 존재하는지에 따라 충돌 여부를 계산
+
+**문제점: Collision 계산을 위해 모든 엔티티에 대해 추가적인 GEOSEARCH를 수행해야 했다.
+엔티티 수가 증가할수록 Collision 단계에서 Redis 요청 수가 급격히 증가하였고, 전체 Tick 시간에서도 상당한 병목을 차지하게 되었다.**
+
+---
+
+**개선한 방식**
+
+Tick 시작 시 이미 HGETALL을 통해 메모리에 적재한 엔티티 목록을 활용하여 Position 기반 좌표 맵을 생성하였다.
+
+```java
+private final Map<Position, Set<Long>> board;
+for (RedisEntity entity : entities) {
+            Long id = entity.getId();
+
+            Position position = new Position(
+                    entity.getX(),
+                    entity.getY()
+            );
+
+            Set<Long> existEntities =
+                    board.getOrDefault(
+                            position,
+                            new HashSet<>()
+                    );
+
+            existEntities.add(id);
+            board.put(position, existEntities);
+        }
+```
+`Position 을 Set<Long>` 구조를 사용하여 Spawn으로 동일 좌표에 여러 엔티티가 존재하는 경우도 처리할 수 있도록 구현하였다.
+```java
+public boolean tryMove(NextMove nextMove) {
+
+        RedisEntity entity = nextMove.getEntity();
+
+        Long id = entity.getId();
+
+        Position prevPosition = new Position(
+                entity.getX(),
+                entity.getY()
+        );
+
+        Position nextPosition = new Position(
+                nextMove.getNextX(),
+                nextMove.getNextY()
+        );
+
+        Set<Long> prevEntities = board.get(prevPosition);
+
+        if (!board.containsKey(nextPosition)) {
+
+            Set<Long> nextEntities = new HashSet<>();
+            nextEntities.add(id);
+
+            board.put(nextPosition, nextEntities);
+
+            prevEntities.remove(id);
+
+            if (prevEntities.isEmpty()) {
+                board.remove(prevPosition);
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+```
+다음 움직일 좌표에 대해서 기존에 생성해놓은 좌표와 비교하여 해당 좌표에 앤티티가 존재하는지 계산한뒤 움직인다.
+이후 이동 요청마다 Position 맵만 조회하여 충돌 여부를 O(1)에 가깝게 판정하도록 변경하였다.
+
+**개선된 성능**
+| Entity Count | GEOSEARCH Collision Search | In-Memory Move With Collision | Improvement |
+|-------------|---------------------------:|------------------------------:|------------:|
+| 1,000 | 12.6 ms | 0.0 ms | -12.6 ms |
+| 5,000 | 39.3 ms | 1.3 ms | -38.0 ms |
+| 10,000 | 66.6 ms | 3.4 ms | -63.2 ms |
+
+---
+
+## Redis Cluster 기반 샤딩 구조 적용
+
+### 기존의 방식
+
+모든 엔티티의 위치 정보를 하나의 Geo Set에서 관리하였다.
+
+```text
+geo:entities
+ ├── entity:1
+ ├── entity:2
+ ├── entity:3
+ └── ...
+```
+
+모든 Entity Key 역시 동일한 Key 공간에서 관리하였다.
+
+### 문제점
+
+**단일 Redis 인스턴스에 모든 데이터가 집중되어 확장성이 제한되었다.**
+
+또한 Cluster 환경에서는 Geo Key와 Entity Key가 서로 다른 Slot에 저장될 수 있어, 관련 데이터를 함께 처리하기 어려웠다.
+
+---
+
+### 개선한 방식
+
+월드를 Cell 단위로 분할하고 Cell마다 별도의 Geo Set을 관리하도록 변경하였다.
+
+```text
+geo:0:0
+geo:0:1
+geo:1:0
+...
+```
+
+또한 Entity Key에 Hash Tag를 적용하여 같은 Cell의 Entity와 Geo 데이터가 동일한 Hash Slot에 저장되도록 설계하였다.
+
+```text
+{geo:0:0}:entity:1
+{geo:0:0}:entity:2
+{geo:1:0}:entity:3
+```
+
+이를 통해 Redis Cluster 환경에서도 관련 데이터를 동일한 Slot에서 처리할 수 있도록 개선하였다.
+
+---
+
+### 개선 효과
+
+- Redis Cluster 환경에서 데이터를 노드별로 분산 저장할 수 있도록 구조 개선
+- Hash Tag를 적용하여 동일 Cell의 데이터를 같은 Hash Slot에 배치
+- Cross Slot 문제를 방지하고 Cluster 환경에 적합한 Key 구조 설계
+- Cell 단위 데이터 관리로 향후 노드 확장 및 Resharding에 대응 가능한 구조 확보
+
+<img width="1512" height="696" alt="image" src="https://github.com/user-attachments/assets/f77b6304-6d5f-47b2-bd06-95610fe5283b" />
+
+<img width="1511" height="611" alt="image" src="https://github.com/user-attachments/assets/1d59d833-a5cb-4124-bae5-8ec6685bb37c" />
+
+| Metric | Single Redis | Redis Cluster | Improvement |
+|--------|-------------:|--------------:|------------:|
+| Tick Time (10,000 Entities) | 74 ms | 50 ms | **약 32% 감소** |
+| Main Thread CPU | 0.29 | 0.13 | **약 55% 감소** |
+| Process CPU | 0.28 | 0.13 | **약 54% 감소** |
+| Commands / Node | 21,000 | 8,500 | **약 60% 감소** |
+| Memory / Node | 700 MB | 500~560 MB | **노드별 메모리 분산** |
+
+---
+
+
