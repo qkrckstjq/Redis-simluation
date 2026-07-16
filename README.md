@@ -3,10 +3,12 @@
 
 **Redis Cluster** 환경에서 성능과 운영성을 검증하는 프로젝트입니다.
 
+- 100ms Tick 기반 실시간 시뮬레이션
+- Redis Cluster(3 Master)
+- 최대 약 64,000개의 엔티티 처리
+- Redis GEO · Streams · Pipeline 기반 구현
+
 <img width="1000" height="563" alt="Redis Simulation - Chrome 2026-07-16 19-23-41 (1)" src="https://github.com/user-attachments/assets/f0b9fc3f-6fbf-4ead-8560-53e1e03eba68" />
-
-
-
 
 
 # 프로젝트 소개
@@ -47,16 +49,9 @@
 
 # Redis 선택 이유
 
-Redis는 다양한 자료구조(Hash, Set, List)와
-Geo, Streams, Cluster 기능을 제공하여
+Redis는 다양한 자료구조(Hash, Set, List)와 함께 **GEO, Streams, Cluster** 기능을 제공하여 실시간 위치 탐색, 이벤트 처리, 데이터 분산 저장을 하나의 저장소에서 구현할 수 있습니다.
 
-실시간 위치 탐색,
-이벤트 처리,
-분산 저장을
-하나의 저장소에서 수행할 수 있었다.
-이 프로젝트에서는 **Redis**의 다양한 기능을 활용합니다.
-
-Redis는 다양한 자료구조와 빠른 응답 속도를 제공하며, Cluster와 Streams 등 프로젝트에서 필요한 기능을 함께 제공하기 때문에 메인 데이터 저장소로 선택했습니다.
+이 프로젝트에서는 이러한 기능을 활용하여 엔티티 상태 관리, 주변 탐색, 이벤트 처리, 분산 저장을 하나의 데이터 저장소에서 처리하기 위해 Redis를 메인 데이터 저장소로 선택했습니다.
 
 ---
 
@@ -112,7 +107,7 @@ Redis는 다양한 자료구조와 빠른 응답 속도를 제공하며, Cluster
 시뮬레이션은 100ms마다 아래 순서로 수행됩니다.
 | 단계 | 작업 | 설명 |
 |------|------|------|
-| **1** | Read Entities | Redis(In-Memory)에서 엔티티 정보를 조회합니다. |
+| **1** | Read Entities | EntityManager(In-Memory)에서 엔티티 정보를 조회합니다. |
 | **2** | Skip GeoSearch | 주변 탐색이 필요 없는 엔티티를 필터링합니다. |
 | **3** | GeoSearch | Redis GEO를 이용하여 주변 엔티티를 탐색합니다. |
 | **4** | Decide Next Move | 주변 엔티티를 기반으로 다음 행동(State)을 결정합니다. |
@@ -313,11 +308,6 @@ public List<Object> responsePipeLine(Consumer<RedisConnection> consumer) {
 - Tick당 Read/Write 처리 시간 단축
 - 엔티티 수가 증가할수록 성능 향상 효과 증가
 
-**Read/Write 성능 개선 표**
-| Count | Before | After | Improvement |
-|--------------|-------:|------:|------------:|
-| 1,000 | 120 ms | 40 ms | **-80 ms (≈66.7%)** |
-
 ---
 
 ## 🔧 앤티티들의 충돌 판정 개선
@@ -357,10 +347,10 @@ public List<Object> responsePipeLine(Consumer<RedisConnection> consumer) {
 
 ```text
 geo:entities
- ├── entity:1
- ├── entity:2
- ├── entity:3
- └── ...
+  entity:1
+  entity:2
+  entity:3
+ ...
 ```
 
 모든 Entity Key 역시 동일한 Key 공간에서 관리하였다.
@@ -411,7 +401,7 @@ geo:1:0
 | Main Thread CPU | 0.29 | 0.13 | ** 55% 감소** |
 | Process CPU | 0.28 | 0.13 | ** 54% 감소** |
 | Commands / Node | 21,000 | 8,500 | ** 60% 감소** |
-| Memory / Node | 700 MB | 500~560 MB | **노드별 메모리 분산** |
+| Memory / Node | - | - | **노드별 메모리 분산** |
 
 ---
 
@@ -655,3 +645,56 @@ DLQ 저장
 <img width="1548" height="825" alt="image" src="https://github.com/user-attachments/assets/8cef32a4-4e90-462a-aa3c-7665d9b0978b" />
 > Prometheus + Grafana를 통해 스트림 메세지 길이 및 오류, Pending된 데이터 확인
 
+---
+
+## 최종 결과
+
+초기에는 Redis를 중심으로 모든 계산을 수행하는 구조였지만, 
+
+단계적인 최적화를 통해 병목 구조를 완화하고, 새로운 구조 도입 및 개선으로 성능을 최적화 시키고
+
+Redis Cluster, Consumer Recovery등을 통해 안정성을 높였다.
+
+```text
+Redis Pipeline
+        │
+        ▼
+In-Memory Collision
+        │
+        ▼
+Redis Cluster
+        │
+        ▼
+Async Processing
+        │
+        ▼
+In-Memory Architecture
+        │
+        ▼
+Pending Recovery / DLQ
+```
+
+<img width="1547" height="638" alt="image" src="https://github.com/user-attachments/assets/e96c6a5b-997c-43e7-9132-9a4c2361ac99" />
+
+<img width="1550" height="590" alt="image" src="https://github.com/user-attachments/assets/e7eba31e-71ba-4c1a-83e1-c35667ec67e0" />
+
+> 100ms Tick 환경에서 1,000개의 엔티티부터 시작하여 최대 약 **64,000개의 엔티티**까지 증가시키며 측정하였다.
+
+| Metric | Result |
+|--------|-------:|
+| World Size | 256 × 256 |
+| Initial Entity Count | 1,000 |
+| Maximum Entity Count | 약 64,000 |
+| Tick Time (64K Entities) | 약 **670 ms** |
+| Redis Main Thread CPU (Peak) | 약 **0.68** |
+| Redis Process CPU (Peak) | 약 **0.66** |
+| Redis Commands/sec (Peak) | 약 **20,000 / Node** |
+| Redis Stream Pending | **0** |
+| Stream Error Count | **0** |
+
+### 결과
+
+- 최대 약 **64,000개의 엔티티**까지 Tick을 안정적으로 수행
+- Redis Cluster 환경에서 노드별 Commands를 분산 처리
+- Pending Recovery를 통해 Pending Count를 지속적으로 **0**으로 유지
+- DLQ 및 Stream Error 없이 Consumer를 안정적으로 운영
