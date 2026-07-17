@@ -698,3 +698,20 @@ Pending Recovery / DLQ
 - Redis Cluster 환경에서 노드별 Commands를 분산 처리
 - Pending Recovery를 통해 Pending Count를 지속적으로 **0**으로 유지
 - DLQ 및 Stream Error 없이 Consumer를 안정적으로 운영
+
+---
+
+Redis GeoSearch VS InMemory FindNearEntities
+
+<img width="1509" height="700" alt="image" src="https://github.com/user-attachments/assets/a1e7aa39-deaf-4519-8e0a-954a6f2436b4" />
+
+`좌측 : Redis GeoSearch`
+`우측 : InMemory NearSearch`
+
+Redis의 GEOSEARCH를 InMemory 탐색으로 대체하는 실험을 진행하였다. 
+
+초기에는 네트워크 비용이 없는 InMemory 방식이 더 빠른 성능을 보였지만, 엔티티 수가 증가할수록 성능 차이는 거의 사라졌다.
+
+또한 Redis GEOSEARCH는 거리순 탐색(ASC)과 같은 공간 검색 기능을 이미 최적화하여 제공하는 반면, InMemory 방식은 동일한 결과를 얻기 위해 별도의 거리 계산과 정렬 로직을 직접 구현해야 했다.
+
+성능상 이점이 크지 않았고, 공간 탐색의 책임은 Redis에, AI 계산은 Spring에 분리하는 구조가 역할 분리와 유지보수 측면에서도 더 적합하다고 판단하여 Redis GEOSEARCH 방식을 최종 선택하였다.
